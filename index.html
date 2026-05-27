@@ -1,0 +1,3563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>质审业务数据分析</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* =========================================================
+   质审分析 · v10 设计系统
+   方向：企业 SaaS 浅色专业（Linear / Notion / 飞书）
+   原则：米白底、强字体节奏、大留白、零装饰、低饱和
+   ========================================================= */
+
+/* ===== Tokens ===== */
+:root{
+  /* 表面 */
+  --bg: #fafaf7;
+  --bg-2: #f4f4ef;
+  --surface: #ffffff;
+  --surface-2: #faf9f6;
+
+  /* 描边 */
+  --line: #ececea;
+  --line-2: #f0efed;
+  --line-strong: #d9d9d5;
+
+  /* 字阶 */
+  --ink: #1a1a1a;
+  --ink-2: #2c2c2c;
+  --ink-3: #555553;
+  --ink-4: #7a7a78;
+  --muted: #a3a39f;
+
+  /* 品牌 · 深青 */
+  --brand: #1a4d4d;
+  --brand-2: #266b6b;
+  --brand-bg: #ecf2f0;
+  --brand-line: #cfdcd8;
+
+  /* 语义 */
+  --pass: #2f7d6d;        --pass-bg: #e8f1ee;
+  --block: #b04a4a;       --block-bg: #f5e8e6;
+  --warn: #a87a3c;        --warn-bg: #f4ede0;
+  --info: #4a6f8a;        --info-bg: #ecf0f4;
+  --violet: #6a5f8c;      --violet-bg: #efedf2;
+
+  /* 阴影 */
+  --shadow-xs: 0 1px 0 rgba(26,26,26,.04);
+  --shadow-sm: 0 1px 2px rgba(26,26,26,.04), 0 1px 1px rgba(26,26,26,.02);
+  --shadow:    0 4px 14px rgba(26,26,26,.06), 0 1px 2px rgba(26,26,26,.03);
+  --shadow-lg: 0 18px 38px rgba(26,26,26,.10), 0 4px 12px rgba(26,26,26,.04);
+
+  /* 几何 */
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-sm: 8px;
+}
+
+*{ box-sizing:border-box; }
+html, body{ margin:0; padding:0; }
+body{
+  font-family: "PingFang SC","Microsoft YaHei","Inter","Helvetica Neue",Arial,sans-serif;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -.005em;
+  overflow-x: hidden;
+}
+.number, .num{ font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.hidden{ display:none !important; }
+
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-thumb{ background:#d9d9d5; border-radius:4px; }
+::-webkit-scrollbar-thumb:hover{ background:#b8b8b3; }
+
+/* ============================================
+   1. 顶栏
+   ============================================ */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner{
+  height:60px; padding: 0 28px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.brand-logo{
+  width:30px; height:30px; border-radius:8px;
+  background: var(--brand);
+  color:#fff; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  letter-spacing:0;
+}
+.brand-title{ font-size:15px; font-weight:600; color:var(--ink); letter-spacing:-.01em; line-height:1.1; }
+.brand-sub{ font-size:12px; color:var(--ink-4); margin-top:3px; font-weight:400; }
+.topbar-actions{ display:flex; align-items:center; gap:8px; }
+
+/* ============================================
+   2. App Shell
+   ============================================ */
+.app-shell{
+  display:grid; grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 60px);
+}
+.sidebar{
+  background:transparent;
+  border-right:1px solid var(--line);
+  padding:24px 16px;
+  display:flex; flex-direction:column; gap:20px;
+  position:sticky; top:60px; height: calc(100vh - 60px);
+  overflow-y:auto;
+}
+.nav-section-label{
+  font-size:11px; font-weight:600; color:var(--muted);
+  letter-spacing:.08em; text-transform:uppercase;
+  padding: 0 10px 8px;
+}
+.nav{ display:flex; flex-direction:column; gap:1px; }
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; border-radius:7px;
+  font-size:13.5px; color:var(--ink-3); font-weight:500;
+  cursor:pointer; user-select:none;
+  transition: background .12s, color .12s;
+  text-decoration:none;
+}
+.nav-item:hover{ background: rgba(26,77,77,.04); color:var(--ink); }
+.nav-item.active{
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-weight:600;
+}
+.nav-icon{ width:18px; text-align:center; font-size:14px; flex-shrink:0; }
+.nav-badge{
+  margin-left:auto;
+  min-width:18px; height:18px; padding:0 6px;
+  border-radius:999px;
+  font-size:10.5px; font-weight:600;
+  background: var(--block-bg); color: var(--block);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-variant-numeric: tabular-nums;
+}
+.nav-badge:empty{ display:none; }
+
+/* 阈值控件区 */
+.sidebar-ctrl{
+  border-top:1px solid var(--line-2);
+  padding-top:18px;
+  display:flex; flex-direction:column; gap:12px;
+}
+.field-v{ display:flex; flex-direction:column; gap:6px; padding:0 10px; }
+.field-v .field-lbl{
+  font-size:11px; color:var(--ink-4); font-weight:500;
+  letter-spacing:.01em;
+}
+.input-pill{
+  display:inline-flex; align-items:center;
+  background:#fff; border:1px solid var(--line-strong); border-radius:7px;
+  overflow:hidden; transition: border-color .12s, box-shadow .12s;
+  width:100%;
+}
+.input-pill:focus-within{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.08); }
+.input-pill input{
+  flex:1; min-width:0;
+  padding:7px 10px; border:0; outline:0;
+  font-size:13px; font-weight:600; color:var(--ink);
+  text-align:left; background:transparent;
+}
+.input-pill .post{
+  padding: 0 10px; font-size:11px; color:var(--ink-4);
+  border-left:1px solid var(--line-2);
+  flex-shrink:0;
+}
+.ctrl-tip{
+  font-size:11.5px; color:var(--ink-4);
+  padding: 8px 12px; border-radius:6px;
+  background: var(--surface-2);
+  line-height:1.5;
+}
+.ctrl-tip.cleaned{
+  background: var(--brand-bg); color: var(--brand);
+}
+.ctrl-tip b{ color: var(--ink-2); font-weight:600; }
+.ctrl-tip.cleaned b{ color: var(--brand); }
+
+/* 主区 */
+.content{
+  padding: 32px 40px 48px;
+  background: var(--bg);
+  min-width:0;
+  max-width:1400px;
+}
+
+/* Tab 面板 - 锚点模式（全部显示） */
+.tab-panel{ display:block; padding-top:8px; scroll-margin-top: 76px; }
+.tab-panel + .tab-panel{ margin-top:48px; padding-top:8px; }
+@keyframes fade{ from{opacity:0; transform:translateY(2px);} to{opacity:1; transform:none;} }
+
+.panel-head{
+  margin-bottom:28px;
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:16px; flex-wrap:wrap;
+}
+.panel-head > div:first-child{ flex:1; min-width:0; }
+.panel-head h2{
+  font-size:24px; font-weight:600; color:var(--ink);
+  margin:0; letter-spacing:-.02em; line-height:1.2;
+}
+.panel-head p{ font-size:13px; color:var(--ink-4); margin:6px 0 0; line-height:1.6; }
+.panel-head .ml-auto{ position:static; }
+
+/* ============================================
+   3. 上传遮罩
+   ============================================ */
+.upload-screen{
+  position:fixed; inset:60px 0 0 0;
+  display:flex; align-items:center; justify-content:center;
+  padding:30px;
+  background: var(--bg);
+  z-index:30;
+}
+.upload-card{
+  width:min(460px, 100%);
+  background:#fff;
+  border-radius:var(--radius-lg);
+  padding:40px 36px;
+  border:1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  text-align:center;
+}
+.upload-card .upload-icon{
+  width:48px; height:48px; margin:0 auto 16px;
+  border-radius:12px;
+  background: var(--brand-bg);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; color: var(--brand);
+}
+.upload-title{ font-size:18px; font-weight:600; color:var(--ink); margin-bottom:8px; letter-spacing:-.01em; }
+.upload-desc{ font-size:12.5px; color:var(--ink-4); margin-bottom:24px; line-height:1.7; }
+.upload-zone{
+  border:1.5px dashed var(--line-strong); border-radius:10px;
+  padding:28px 16px; text-align:center;
+  background: var(--surface-2);
+  cursor:pointer;
+  transition: border-color .15s, background .15s;
+}
+.upload-zone:hover, .upload-zone.dragover{
+  border-color: var(--brand); background:#fff;
+}
+.kbd{
+  display:inline-block; padding:1px 6px; border-radius:4px;
+  background: var(--surface-2); border:1px solid var(--line);
+  color: var(--ink-2); font-size:11px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ============================================
+   4. 按钮
+   ============================================ */
+.btn-primary{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 16px; border-radius:7px;
+  background: var(--brand); color:#fff;
+  font-size:13px; font-weight:500;
+  border:0; cursor:pointer;
+  transition: background .12s;
+}
+.btn-primary:hover{ background: #133636; }
+.btn-ghost{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:7px;
+  background:#fff; border:1px solid var(--line-strong);
+  font-size:12.5px; color:var(--ink-3); font-weight:500;
+  cursor:pointer; transition: all .12s;
+}
+.btn-ghost:hover{ background: var(--surface-2); border-color: var(--brand); color: var(--ink); }
+
+/* ============================================
+   5. 卡片
+   ============================================ */
+.card{
+  background: var(--surface);
+  border:1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding:20px 22px;
+  box-shadow: var(--shadow-xs);
+}
+.card-title{
+  font-size:13px; font-weight:600; color:var(--ink);
+  display:flex; align-items:center; gap:8px;
+  letter-spacing:-.005em;
+}
+.card-title .badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:20px; height:20px; border-radius:6px;
+  font-size:10px; color: var(--brand);
+  background: var(--brand-bg);
+  flex-shrink:0;
+}
+.card-sub{ font-size:12px; color: var(--ink-4); margin-top:4px; line-height:1.6; }
+.mt-2{ margin-top:8px; } .mt-3{ margin-top:12px; } .mt-4{ margin-top:16px; }
+.mb-2{ margin-bottom:8px; } .mb-3{ margin-bottom:12px; } .mb-4{ margin-bottom:16px; }
+
+/* ============================================
+   6. KPI 网格
+   ============================================ */
+.kpi-grid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width:1100px){ .kpi-grid{ grid-template-columns: repeat(3, 1fr); } }
+@media (max-width:640px){ .kpi-grid{ grid-template-columns: repeat(2, 1fr); } }
+.kpi{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding:16px 18px;
+  transition: border-color .12s;
+}
+.kpi:hover{ border-color: var(--line-strong); }
+.kpi .label{ font-size:11.5px; color:var(--ink-4); font-weight:500; letter-spacing:.005em; }
+.kpi .value{
+  font-size:24px; font-weight:700; color:var(--ink);
+  margin-top:8px; letter-spacing:-.02em; line-height:1.05;
+}
+.kpi .unit{ font-size:12px; color:var(--muted); margin-left:3px; font-weight:500; }
+.kpi .icon{ display:none; } /* 极简 - 不要小图标 */
+.kpi.pass .value{ color: var(--pass); }
+.kpi.block .value{ color: var(--block); }
+.kpi.warn .value{ color: var(--warn); }
+.kpi.violet .value{ color: var(--violet); }
+.kpi.cyan .value{ color: var(--info); }
+.kpi::before{ display:none; } /* 不要色条 */
+
+.delta{
+  display:inline-flex; align-items:center;
+  font-size:11px; font-weight:600;
+  padding:0 6px; border-radius:4px;
+  margin-left:6px; vertical-align:1px;
+}
+.delta-up{ background: var(--pass-bg); color: var(--pass); }
+.delta-down{ background: var(--block-bg); color: var(--block); }
+.delta-flat{ background: var(--surface-2); color: var(--ink-4); }
+
+/* ============================================
+   7. 概览：通过/拦截 横向 stacked + Legend
+   ============================================ */
+.ovr-card{ padding:24px 26px; }
+.ovr-kpis{
+  display:flex; gap:48px; flex-wrap:wrap;
+  padding-bottom:20px;
+  border-bottom: 1px solid var(--line-2);
+  margin-bottom:20px;
+}
+.ovr-kpi{ display:flex; flex-direction:column; }
+.ovr-kpi .v{
+  font-size:30px; font-weight:700; color:var(--ink);
+  letter-spacing:-.025em; line-height:1.05;
+  font-variant-numeric: tabular-nums;
+}
+.ovr-kpi .v.pass-c{ color: var(--pass); }
+.ovr-kpi .v.block-c{ color: var(--block); }
+.ovr-kpi .l{ font-size:12px; color:var(--ink-4); margin-top:6px; font-weight:500; }
+.ovr-bar{
+  height:10px; border-radius:6px; overflow:hidden; display:flex;
+  background: var(--bg-2);
+}
+.ovr-seg{
+  height:100%;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:0; font-weight:600;
+  transition: filter .15s;
+  overflow:hidden;
+}
+.ovr-seg:hover{ filter: brightness(1.06); }
+.ovr-legend{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 16px;
+  margin-top:18px;
+}
+.ovr-leg{
+  display:flex; align-items:center; gap:10px;
+  padding: 4px 0;
+  font-size:12px;
+}
+.ovr-leg .dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.ovr-leg .lbl{ flex:1; min-width:0; color: var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ovr-leg .v{ color: var(--ink); font-weight:600; font-variant-numeric: tabular-nums; }
+.ovr-leg .pct{ color: var(--ink-4); margin-left:4px; font-weight:400; }
+
+.chart-box{ width:100%; height:300px; }
+
+/* ============================================
+   8. 概览：洞察卡
+   ============================================ */
+.insight-card .insight-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:16px;
+}
+.insight-content{ display:flex; flex-direction:column; gap:8px; }
+.insight-row{
+  display:flex; align-items:flex-start; gap:14px;
+  padding:12px 14px;
+  border-radius:8px;
+  background: var(--surface-2);
+  border:1px solid var(--line-2);
+  font-size:13px;
+}
+.insight-row .k{
+  font-size:11px; color: var(--ink-4); font-weight:600;
+  width:64px; flex-shrink:0; padding-top:1px;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+.insight-row .v{ flex:1; min-width:0; color: var(--ink-2); line-height:1.6; }
+.insight-row .v b{ color: var(--ink); font-weight:600; }
+
+/* ============================================
+   9. 表格
+   ============================================ */
+.table-wrap{
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  overflow:auto; max-height:520px;
+  background: var(--surface);
+}
+table.t{ width:100%; border-collapse: collapse; font-size:12.5px; font-variant-numeric: tabular-nums; }
+table.t thead th{
+  position:sticky; top:0; z-index:1;
+  background: var(--surface-2);
+  color: var(--ink-4);
+  font-weight:600; padding:10px 14px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap; text-align:left; user-select:none;
+  font-size:11.5px; letter-spacing:.02em;
+  text-transform:uppercase;
+}
+table.t thead th.sortable{ cursor:pointer; }
+table.t thead th.sortable:hover{ color: var(--ink); }
+table.t thead th .arrow{ margin-left:4px; opacity:.4; font-size:10px; }
+table.t thead th.sort-asc .arrow,
+table.t thead th.sort-desc .arrow{ opacity:1; color: var(--brand); }
+table.t tbody td{
+  padding:10px 14px; border-bottom:1px solid var(--line-2);
+  white-space:nowrap; color: var(--ink-2);
+}
+table.t tbody tr:hover td{ background: var(--surface-2); }
+table.t tbody tr:last-child td{ border-bottom:0; }
+
+.num-pos{ color: var(--pass); font-weight:600; }
+.num-neg{ color: var(--block); font-weight:600; }
+
+/* ============================================
+   10. Pill / Tag chip
+   ============================================ */
+.pill{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 9px; border-radius:5px;
+  font-size:11px; font-weight:600;
+  border:1px solid transparent; white-space:nowrap;
+}
+.pill-ok{ background: var(--surface-2); color: var(--ink-4); border-color: var(--line); }
+.pill-loose{ background: var(--block-bg); color: var(--block); border-color: #ead5d3; }
+.pill-strict{ background: var(--warn-bg); color: var(--warn); border-color: #e6dcc4; }
+.pill-info{ background: var(--info-bg); color: var(--info); border-color: #d6dee6; }
+
+.tag-chip{
+  display:inline-flex; align-items:center;
+  padding:2px 8px; border-radius:5px;
+  font-size:11px; white-space:nowrap;
+  border:1px solid transparent; font-weight:500;
+}
+.tag-chip em{ font-style:normal; font-weight:600; margin-left:4px; }
+.tag-chip.t1{ background: var(--block-bg); color: var(--block); border-color: #ead5d3; }
+.tag-chip.t2{ background: var(--warn-bg); color: var(--warn); border-color: #e6dcc4; }
+.tag-chip.t3{ background: var(--surface-2); color: var(--ink-3); border-color: var(--line); }
+
+/* 标签 stacked bar */
+.tag-stack{
+  display:flex; height:10px; border-radius:5px; overflow:hidden;
+  background: var(--bg-2); margin-top:10px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.02);
+  gap:1px;
+}
+.tag-stack-seg{
+  height:100%;
+  transition: filter .15s;
+  min-width:1px;
+}
+.tag-stack-seg:hover{ filter: brightness(1.08); }
+.tag-stack-legend{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; }
+.tag-leg{
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:11.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.tag-leg .dot{ width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.tag-leg-cmp{
+  margin-left:3px; font-size:10.5px; font-weight:600;
+  padding: 0 4px; border-radius:3px;
+  background: var(--surface-2);
+}
+.tag-leg-cmp.num-neg{ color: var(--block); background: rgba(176,74,74,.08); }
+.tag-leg-cmp.num-pos{ color: #2f7d6d; background: rgba(47,125,109,.08); }
+
+/* ============================================
+   11. Tab Bar (维度切换)
+   ============================================ */
+.tab-bar{
+  display:inline-flex; padding:2px;
+  background: var(--bg-2); border-radius:8px; gap:1px;
+}
+.tab-btn{
+  padding:6px 14px; border-radius:6px;
+  font-size:12.5px; font-weight:500;
+  color: var(--ink-4); cursor:pointer;
+  border:0; background:transparent;
+  transition: all .15s;
+}
+.tab-btn:hover{ color: var(--ink-2); }
+.tab-btn.active{
+  background:#fff; color: var(--ink);
+  font-weight:600;
+  box-shadow: var(--shadow-xs);
+}
+
+/* ============================================
+   12. 模块2 人员行
+   ============================================ */
+.rev-list{ display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow:hidden; }
+
+/* 异常标记 chips（在人员名后） */
+.rev-abn-chips{ display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle; }
+.rev-abn-chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:16px; height:16px; border-radius:4px; font-size:10px; font-weight:700; color:#fff;
+  letter-spacing:0;
+}
+.rev-abn-chip.A{ background: var(--block); }
+.rev-abn-chip.B{ background: var(--warn); }
+.rev-abn-chip.C{ background: var(--info); }
+
+/* 通用分页器 */
+.pager{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  margin-top:14px; padding: 4px 2px;
+}
+.pager-info{ font-size:12px; color: var(--ink-4); }
+.pager-ctrl{ display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.pager-btn{
+  min-width:32px; height:30px; padding: 0 10px;
+  border:1px solid var(--line); background:#fff;
+  border-radius:6px; font-size:12px; color: var(--ink-2); cursor:pointer;
+  font-variant-numeric: tabular-nums; transition: all .15s;
+}
+.pager-btn:hover:not(.disabled):not(.active){ border-color: var(--brand); color: var(--brand); }
+.pager-btn.active{ background: var(--brand); border-color: var(--brand); color:#fff; cursor:default; }
+.pager-btn.disabled{ color: var(--ink-5, #c0bfb9); cursor:not-allowed; background:var(--surface-2); }
+.pager-ellipsis{ padding: 0 4px; color: var(--ink-4); font-size:12px; }
+.rev-row{
+  display:grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(220px, 2.4fr) 90px 90px 100px;
+  gap: 18px; align-items:center;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--line-2);
+  transition: background .12s;
+  position:relative;
+}
+.rev-row:last-child{ border-bottom:0; }
+.rev-row:hover{ background: var(--surface-2); }
+.rev-row::before{
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:3px; background:transparent;
+}
+.rev-row.tone-loose::before{ background: var(--warn); }
+.rev-row.tone-strict::before{ background: var(--block); }
+
+.name-cell{ display:flex; align-items:center; gap:10px; min-width:0; }
+.name-cell .nm{
+  font-size:13px; font-weight:600; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  letter-spacing:-.005em;
+}
+.name-cell .meta{ font-size:11px; color: var(--ink-4); margin-top:1px; font-weight:400; }
+
+.rev-bar-cell{ display:flex; flex-direction:column; gap:4px; }
+.rev-bar-track{
+  height:8px; border-radius:4px; overflow:hidden;
+  background: var(--bg-2); display:flex;
+}
+.rev-bar-track .pass{ background: var(--pass); }
+.rev-bar-track .block{ background: var(--block); }
+.rev-bar-track .pass span, .rev-bar-track .block span{ display:none; }
+
+.rev-cell-num{
+  font-size:13px; font-weight:600; color:var(--ink);
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+}
+.rev-cell-num .l{
+  display:block; font-size:10.5px; color: var(--ink-4);
+  font-weight:400; margin-top:1px; letter-spacing:.005em;
+}
+.rev-cell-num.pass-c{ color: var(--pass); }
+.rev-cell-num.block-c{ color: var(--block); }
+
+.rev-diff-cell{ text-align:right; }
+.rev-diff{
+  display:inline-block; padding:2px 8px; border-radius:5px;
+  font-size:11.5px; font-weight:600;
+  font-variant-numeric: tabular-nums;
+}
+.rev-diff.up{ background: var(--warn-bg); color: var(--warn); }
+.rev-diff.down{ background: var(--block-bg); color: var(--block); }
+.rev-diff.flat{ background: var(--surface-2); color: var(--ink-4); }
+
+/* ============================================
+   13. 头像
+   ============================================ */
+.ab-avatar{
+  width:28px; height:28px; border-radius:7px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:600; color:#fff;
+  background: var(--brand);
+  flex-shrink:0;
+  letter-spacing:0;
+}
+.ab-avatar.loose{ background: var(--warn); }
+.ab-avatar.strict{ background: var(--block); }
+
+/* ============================================
+   14. 模块4 异常折叠列表
+   ============================================ */
+.ab-toolbar{
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+  margin-bottom:16px;
+}
+.ab-tool-btns{ display:flex; gap:6px; }
+.ab-list-v3{
+  display:flex; flex-direction:column; gap:0;
+  background: var(--surface); border:1px solid var(--line);
+  border-radius: var(--radius-lg); overflow:hidden;
+}
+.ab-row-v3{
+  border-bottom:1px solid var(--line-2);
+  position:relative;
+  transition: background .12s;
+}
+.ab-row-v3:last-child{ border-bottom:0; }
+.ab-row-v3.expanded{ background: var(--surface-2); }
+.ab-row-v3::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent;
+}
+.ab-row-v3.has-A::before{ background: var(--block); }
+.ab-row-v3.has-B::before{ background: var(--warn); }
+.ab-row-v3.has-C::before{ background: var(--info); }
+
+.ab-row-head{
+  display:grid;
+  grid-template-columns: 16px minmax(180px, 1.4fr) auto minmax(120px, .8fr) minmax(140px, .9fr) minmax(110px, .7fr);
+  gap:18px; align-items:center;
+  padding: 12px 18px 12px 22px;
+  cursor:pointer; user-select:none;
+}
+.ab-row-head:hover{ background: var(--surface-2); }
+.ab-row-v3.expanded .ab-row-head{ border-bottom:1px solid var(--line-2); }
+.ab-chevron{
+  font-size:10px; color: var(--ink-4); transition: transform .2s;
+}
+.ab-row-v3.expanded .ab-chevron{ transform: rotate(90deg); color: var(--brand); }
+
+.ab-mini-name{ display:flex; align-items:center; gap:10px; min-width:0; }
+.ab-mini-name .nm{
+  font-size:13.5px; font-weight:600; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  letter-spacing:-.005em;
+}
+.ab-mini-name .meta{ font-size:11px; color: var(--ink-4); margin-top:1px; font-weight:400; }
+
+.ab-flags-mini{ display:flex; gap:4px; flex-wrap:wrap; }
+.ab-flag{
+  display:inline-flex; align-items:center;
+  padding:2px 7px; border-radius:5px;
+  font-size:10.5px; font-weight:600;
+  white-space:nowrap; letter-spacing:.005em;
+}
+.ab-flag.A{ background: var(--block-bg); color: var(--block); }
+.ab-flag.B{ background: var(--warn-bg); color: var(--warn); }
+.ab-flag.C{ background: var(--info-bg); color: var(--info); }
+
+.ab-mini-stat{ display:flex; flex-direction:column; }
+.ab-mini-stat .v{
+  font-size:13.5px; font-weight:600; color:var(--ink);
+  line-height:1.15; font-variant-numeric: tabular-nums;
+}
+.ab-mini-stat .l{ font-size:10.5px; color: var(--ink-4); margin-top:1px; font-weight:400; }
+.ab-mini-stat[style*="text-align:right"] .l{ }
+
+.ab-row-body{
+  padding: 16px 22px 20px 25px;
+  background: var(--surface-2);
+  display: none;
+}
+.ab-row-v3.expanded .ab-row-body{ display: block; }
+
+.ab-cause-title{
+  font-size:11px; font-weight:600; color: var(--ink-3);
+  letter-spacing:.06em; text-transform:uppercase;
+  margin: 0 0 12px;
+}
+.ab-cause-list{ display:flex; flex-direction:column; gap:10px; }
+.ab-cause{
+  padding: 14px 16px; border-radius: var(--radius);
+  background:#fff;
+  border:1px solid var(--line-2);
+}
+.ab-cause-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:8px; flex-wrap:wrap;
+}
+.ab-cause-name{ font-size:13px; font-weight:600; color:var(--ink); }
+.ab-cause-sample{ font-size:11px; color: var(--ink-4); margin-left:6px; font-weight:400; }
+.ab-cause-rate{
+  font-size:13px; font-weight:600; color:var(--ink);
+  white-space:nowrap; font-variant-numeric: tabular-nums;
+}
+.ab-cause-rate .vs{ font-size:11px; font-weight:400; color: var(--ink-4); margin: 0 4px; }
+
+.ab-fast-card{
+  margin-top: 12px;
+  padding: 12px 16px; border-radius: var(--radius);
+  background: var(--info-bg);
+  border:1px solid #d6dee6;
+}
+.ab-fast-line{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.ab-fast-key{ font-size:12px; color: var(--info); font-weight:600; }
+.ab-fast-val{ font-size:18px; color: var(--info); font-weight:700; font-variant-numeric: tabular-nums; }
+
+.ab-empty-line{ font-size:11.5px; color: var(--muted); padding: 6px 12px; }
+
+.empty-state{
+  text-align:center; padding:60px 24px;
+  color: var(--muted); font-size:13px;
+}
+
+/* ============================================
+   15. 模块5 人员卡片墙 + 详情
+   ============================================ */
+.ppl-grid{
+  display:grid; gap:8px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  max-height:680px; overflow-y:auto;
+  padding-right:4px;
+}
+.ppl-card{
+  cursor:pointer;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background:#fff; border:1px solid var(--line);
+  transition: all .15s;
+  position:relative; overflow:hidden;
+}
+.ppl-card:hover{ border-color: var(--brand); }
+.ppl-card.active{
+  border-color: var(--brand);
+  background: var(--brand-bg);
+}
+.ppl-card.high{ border-color: #ead5d3; }
+.ppl-card.high.active{ border-color: var(--block); background: var(--block-bg); }
+.ppl-name{ font-size:13px; font-weight:600; color:var(--ink); letter-spacing:-.005em; }
+.ppl-meta{ font-size:11px; color: var(--ink-4); margin-top:2px; }
+.ppl-rate{ display:flex; align-items:baseline; gap:4px; margin-top:8px; }
+.ppl-rate-num{
+  font-size:18px; font-weight:700; color:var(--ink);
+  letter-spacing:-.02em; font-variant-numeric: tabular-nums;
+}
+.ppl-rate-num.high{ color: var(--block); }
+.ppl-rate-unit{ font-size:11px; color: var(--ink-4); }
+.ppl-tag{
+  position:absolute; top:8px; right:8px;
+  padding:1px 6px; border-radius:4px;
+  font-size:10px; font-weight:600;
+  background: var(--block-bg); color: var(--block);
+}
+
+.bar-track{
+  height:4px; border-radius:2px;
+  background: var(--bg-2); overflow:hidden;
+  margin-top:6px;
+}
+.bar-fill{ height:100%; background: var(--pass); }
+.bar-fill.block{ background: var(--block); }
+.bar-fill.warn{ background: var(--warn); }
+
+.detail-card{
+  background:#fff; border:1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding:22px 24px;
+}
+.detail-empty{ text-align:center; padding:80px 20px; color: var(--muted); font-size:13px; }
+.detail-head{
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+  margin-bottom:18px; padding-bottom:14px;
+  border-bottom:1px solid var(--line-2);
+}
+.mini-stat{
+  display:inline-flex; flex-direction:column;
+  padding: 0 16px;
+  border-right:1px solid var(--line-2);
+}
+.mini-stat:first-of-type{ padding-left:0; }
+.mini-stat:last-child{ border-right:none; padding-right:0; }
+.mini-stat .v{
+  font-size:18px; font-weight:700; color:var(--ink);
+  letter-spacing:-.02em; line-height:1.1;
+  font-variant-numeric: tabular-nums;
+}
+.mini-stat .l{ font-size:11px; color: var(--ink-4); margin-top:3px; font-weight:400; }
+
+/* ============================================
+   16. 通用工具类
+   ============================================ */
+.flex{ display:flex; } .flex-1{ flex:1; }
+.items-center{ align-items:center; } .items-end{ align-items:flex-end; }
+.justify-between{ justify-content:space-between; }
+.gap-2{ gap:8px; } .gap-3{ gap:12px; } .gap-5{ gap:20px; }
+.flex-wrap{ flex-wrap:wrap; }
+.text-xs{ font-size:11px; } .text-sm{ font-size:12.5px; }
+.font-bold{ font-weight:700; } .font-semibold{ font-weight:600; }
+.min-w-0{ min-width:0; }
+.text-center{ text-align:center; }
+.ml-auto{ margin-left:auto; } .ml-2{ margin-left:8px; }
+.grid{ display:grid; }
+.grid-cols-1{ grid-template-columns:1fr; }
+.gap-4{ gap:16px; } .gap-6{ gap:24px; }
+@media (min-width:768px){
+  .md\:grid-cols-2{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width:1024px){
+  .lg\:grid-cols-2{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width:1280px){
+  .xl\:grid-cols-5{ grid-template-columns: repeat(5, 1fr); }
+  .xl\:col-span-2{ grid-column: span 2; }
+  .xl\:col-span-3{ grid-column: span 3; }
+}
+
+select{
+  border:1px solid var(--line-strong); background:#fff;
+  border-radius:7px; padding:6px 10px;
+  font-size:12.5px; color:var(--ink-2);
+  outline:none; cursor:pointer;
+  transition: border-color .12s, box-shadow .12s;
+}
+select:hover{ border-color: var(--brand); }
+select:focus{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.08); }
+
+.app-footer{
+  text-align:center; font-size:11.5px; color: var(--muted);
+  padding: 24px 0; border-top:1px solid var(--line-2);
+  margin-top: 40px;
+}
+
+/* ============================================
+   17. Bento Grid 概览布局
+   ============================================ */
+.bento{
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: auto;
+  gap: 14px;
+}
+.bento > .card{ padding: 18px 20px; }
+
+/* 默认占位 */
+.bento-pass    { grid-column: span 5; min-height:340px; }
+.bento-kpis    { grid-column: span 7;
+  display:grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: minmax(96px, 1fr); gap:12px; }
+.bento-reason  { grid-column: span 7; }
+.bento-bar     { grid-column: span 5; }
+.bento-trend   { grid-column: span 7; }
+.bento-hist    { grid-column: span 5; }
+.bento-insight { grid-column: span 12; }
+
+@media (max-width:1280px){
+  .bento-pass{ grid-column: span 6; }
+  .bento-kpis{ grid-column: span 6; grid-template-columns: 1fr 1fr; }
+  .bento-reason{ grid-column: span 7; }
+  .bento-bar{ grid-column: span 5; }
+  .bento-trend{ grid-column: span 12; }
+  .bento-hist{ grid-column: span 12; }
+}
+@media (max-width:1024px){
+  .bento > *{ grid-column: span 12 !important; }
+  .bento-kpis{ grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 时间趋势卡 */
+.trend-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.trend-switch{ display:inline-flex; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:2px; }
+.trend-btn{
+  border:0; background:transparent; padding:5px 12px; font-size:12px; color:var(--ink-3);
+  border-radius:6px; cursor:pointer; font-weight:500;
+}
+.trend-btn.active{ background:#fff; color:var(--brand); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.trend-btn:hover:not(.active){ color:var(--ink-2); }
+.trend-empty{ text-align:center; font-size:12.5px; color:var(--ink-4); padding:60px 0; }
+
+/* Bento KPI 子卡（更紧凑） */
+.bento-kpis .kpi{
+  padding: 14px 16px; min-height: 80px;
+}
+.bento-kpis .kpi .label{ font-size:11px; }
+.bento-kpis .kpi .value{ font-size:22px; margin-top:4px; }
+
+/* 大 Donut */
+.donut-wrap{
+  position:relative;
+  width:100%; height:280px;
+  margin-top:6px;
+}
+#chart-donut{ width:100%; height:100%; }
+.donut-center{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); text-align:center;
+  pointer-events:none;
+}
+.donut-num{
+  font-size:38px; font-weight:700; color: var(--ink);
+  letter-spacing:-.025em; line-height:1.05;
+  font-variant-numeric: tabular-nums;
+}
+.donut-lbl{ font-size:11.5px; color: var(--ink-4); margin-top:4px; font-weight:500; }
+.donut-meta{
+  display:flex; justify-content:space-around; margin-top:14px;
+  padding-top:14px; border-top:1px solid var(--line-2);
+}
+.donut-meta-item{ text-align:center; flex:1; }
+.donut-meta-item .v{
+  font-size:16px; font-weight:600; letter-spacing:-.01em;
+  font-variant-numeric: tabular-nums;
+}
+.donut-meta-item .v.pass{ color: var(--pass); }
+.donut-meta-item .v.block{ color: var(--block); }
+.donut-meta-item .l{ font-size:11px; color: var(--ink-4); margin-top:3px; font-weight:500; }
+.donut-meta-item:not(:last-child){ border-right:1px solid var(--line-2); }
+
+/* ============================================
+   18. 人员页：顶部分布+Top榜
+   ============================================ */
+.people-top{
+  display:grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap:14px;
+}
+@media (max-width:1024px){ .people-top{ grid-template-columns: 1fr; } }
+.people-rank .card-title.rank-loose{ color: var(--warn); }
+.people-rank .card-title.rank-strict{ color: var(--block); }
+.rank-list{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+.rank-item{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:8px;
+  background: var(--surface-2); border:1px solid var(--line-2);
+  font-size:12.5px;
+}
+.rank-no{
+  width:18px; height:18px; border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:#fff;
+  flex-shrink:0;
+  background: var(--ink-4);
+}
+.rank-no.rk-1{ background: var(--warn); }
+.rank-no.rk-2{ background: #c8a96a; }
+.rank-no.rk-3{ background: #d4bc8b; }
+.rank-loose-card .rank-no.rk-1{ background: var(--warn); }
+.rank-strict-card .rank-no.rk-1{ background: var(--block); }
+.rank-name{ flex:1; min-width:0; font-weight:600; color: var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rank-rate{ font-weight:700; font-variant-numeric: tabular-nums; }
+.rank-rate.up{ color: var(--warn); }
+.rank-rate.down{ color: var(--block); }
+
+/* ============================================
+   19. 异常页：ABC 三类统计卡
+   ============================================ */
+.abc-cards{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+  margin-bottom:16px;
+}
+@media (max-width:768px){ .abc-cards{ grid-template-columns: 1fr; } }
+.abc-card{
+  position:relative;
+  background:#fff; border:1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding:18px 20px;
+  overflow:hidden;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.abc-card.clickable{ cursor:pointer; }
+.abc-card.clickable:hover{
+  border-color: var(--ink-4); box-shadow: 0 4px 14px rgba(26,26,26,.06); transform: translateY(-1px);
+}
+.abc-card.clickable:focus-visible{ outline: 2px solid var(--brand); outline-offset: 2px; }
+.abc-cta{
+  margin-left:auto; font-size:11px; color: var(--ink-4); font-weight:500;
+  letter-spacing:0; opacity:0; transition: opacity .15s;
+}
+.abc-card.clickable:hover .abc-cta{ opacity:1; }
+.abc-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+}
+.abc-A::before{ background: var(--block); }
+.abc-B::before{ background: var(--warn); }
+.abc-C::before{ background: var(--info); }
+.abc-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.abc-tag{
+  width:22px; height:22px; border-radius:6px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff;
+}
+.abc-A .abc-tag{ background: var(--block); }
+.abc-B .abc-tag{ background: var(--warn); }
+.abc-C .abc-tag{ background: var(--info); }
+.abc-name{ font-size:13px; font-weight:600; color: var(--ink); }
+.abc-num{
+  font-size:30px; font-weight:700; color: var(--ink);
+  letter-spacing:-.025em; line-height:1.1;
+  font-variant-numeric: tabular-nums;
+}
+.abc-A .abc-num{ color: var(--block); }
+.abc-B .abc-num{ color: var(--warn); }
+.abc-C .abc-num{ color: var(--info); }
+.abc-sub{ font-size:11.5px; color: var(--ink-4); margin-top:4px; line-height:1.5; }
+.abc-bar{ display:flex; gap:2px; height:24px; margin-top:10px; align-items:flex-end; }
+.abc-bar-seg{
+  flex:1; min-width:3px;
+  background: var(--bg-2); border-radius:2px;
+  position:relative;
+}
+.abc-bar-seg-fill{
+  position:absolute; bottom:0; left:0; right:0;
+  border-radius:2px; min-height:1px;
+  transition: height .3s;
+}
+.abc-A .abc-bar-seg-fill{ background: var(--block); }
+.abc-B .abc-bar-seg-fill{ background: var(--warn); }
+.abc-C .abc-bar-seg-fill{ background: var(--info); }
+
+/* ABC 详情模态框 */
+.abc-modal{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; }
+.abc-modal.hidden{ display:none; }
+.abc-modal-mask{ position:absolute; inset:0; background: rgba(26,26,26,.42); backdrop-filter: blur(2px); }
+.abc-modal-panel{
+  position:relative; background:#fff; border-radius: var(--radius-lg);
+  width: min(720px, 92vw); max-height: 80vh; display:flex; flex-direction:column;
+  box-shadow: 0 24px 48px rgba(0,0,0,.18);
+  animation: modalIn .18s ease-out;
+}
+@keyframes modalIn{ from{ opacity:0; transform: translateY(8px) scale(.985); } to{ opacity:1; transform:none; } }
+.abc-modal-head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding: 16px 20px; border-bottom:1px solid var(--line);
+}
+.abc-modal-title{ font-size:15px; font-weight:600; color: var(--ink); display:flex; align-items:center; gap:8px; }
+.abc-modal-title .tag-A,.abc-modal-title .tag-B,.abc-modal-title .tag-C{
+  width:22px; height:22px; border-radius:6px; color:#fff; font-weight:700; font-size:12px;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.abc-modal-title .tag-A{ background: var(--block); }
+.abc-modal-title .tag-B{ background: var(--warn); }
+.abc-modal-title .tag-C{ background: var(--info); }
+.abc-modal-close{
+  width:30px; height:30px; border:0; background: var(--surface-2); border-radius:6px;
+  font-size:18px; color: var(--ink-3); cursor:pointer; line-height:1;
+}
+.abc-modal-close:hover{ background: var(--line); color: var(--ink); }
+.abc-modal-body{ padding: 14px 20px 18px; overflow-y:auto; }
+
+.abc-modal-meta{
+  font-size:12.5px; color: var(--ink-3); padding: 4px 0 12px;
+  border-bottom:1px dashed var(--line); margin-bottom: 10px;
+}
+.abc-modal-meta b{ color: var(--ink); font-weight:600; }
+.abc-modal-list{ display:flex; flex-direction:column; gap:8px; }
+.abc-modal-item{
+  border:1px solid var(--line-2); border-radius:8px; background: var(--surface);
+  overflow:hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.abc-modal-item.expanded{
+  border-color: var(--line);
+  box-shadow: 0 2px 8px rgba(26,26,26,.04);
+}
+.abc-item-head{
+  display:grid; grid-template-columns: 14px 28px 1fr auto; gap:10px; align-items:center;
+  padding: 9px 12px; cursor:pointer;
+  transition: background .15s;
+}
+.abc-item-head:hover{ background: var(--surface-2); }
+.abc-modal-item.expanded .abc-item-head{ border-bottom:1px solid var(--line-2); background: var(--surface-2); }
+.abc-item-head .chev{
+  font-size:10px; color: var(--ink-4); transition: transform .2s, color .2s;
+  display:inline-block; text-align:center;
+}
+.abc-modal-item.expanded .abc-item-head .chev{ transform: rotate(90deg); color: var(--brand); }
+
+.abc-modal-item .rank{
+  width:22px; height:22px; border-radius:6px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color: var(--ink-3);
+  background: var(--surface-2); border:1px solid var(--line-2);
+  font-variant-numeric: tabular-nums;
+}
+.abc-modal-item .nm{ font-size:13px; font-weight:600; color: var(--ink); }
+.abc-modal-item .sub{ font-size:11.5px; color: var(--ink-4); margin-top:2px; }
+.abc-modal-item .v{ font-size:13.5px; font-weight:600; font-variant-numeric: tabular-nums; }
+.abc-modal-item.A .v{ color: var(--block); }
+.abc-modal-item.B .v{ color: var(--warn); }
+.abc-modal-item.C .v{ color: var(--info); }
+
+.abc-item-body{
+  display:none;
+  padding: 14px 16px 16px;
+  background: var(--surface);
+}
+.abc-modal-item.expanded .abc-item-body{ display:block; }
+.abc-modal-empty{ text-align:center; padding: 30px 0; color: var(--ink-4); font-size:13px; }
+
+/* ============================================
+   标签异常分析报告
+   ============================================ */
+.tag-report-card .trend-head{ margin-bottom:4px; }
+.tag-report-list{
+  display:flex; flex-direction:column; gap:0;
+  border:1px solid var(--line); border-radius: var(--radius-lg); overflow:hidden; background:#fff;
+}
+.tag-report-row{
+  display:grid;
+  grid-template-columns: 36px minmax(140px, 1.3fr) minmax(180px, 2fr) 96px 96px 24px;
+  gap: 14px; align-items:center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-2);
+  cursor:pointer; transition: background .15s;
+}
+.tag-report-row:last-child{ border-bottom:0; }
+.tag-report-row:hover{ background: var(--surface-2); }
+.tag-report-row .rank-no{
+  width:28px; height:28px; border-radius:8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color: var(--ink-3);
+  background: var(--surface-2); border:1px solid var(--line-2);
+  font-variant-numeric: tabular-nums;
+}
+.tag-report-row.top-1 .rank-no{ background:#fdf3e8; color:#b67d3c; border-color:#f3dcb8; }
+.tag-report-row.top-2 .rank-no{ background:#f1efeb; color:#7a7166; border-color:#d8d3c8; }
+.tag-report-row.top-3 .rank-no{ background:#f5e9e0; color:#a06a4a; border-color:#e4cdb8; }
+
+.tag-report-row .nm-cell{ min-width:0; }
+.tag-report-row .nm{
+  font-size:13.5px; font-weight:600; color: var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tag-report-row .meta{ font-size:11.5px; color: var(--ink-4); margin-top:2px; }
+
+.tag-report-row .bar-cell{ display:flex; align-items:center; gap:10px; }
+.tag-report-bar{
+  flex:1; height:8px; background: var(--surface-2); border-radius:4px; overflow:hidden;
+}
+.tag-report-bar > .fill{ height:100%; background: linear-gradient(90deg, #d18a8a 0%, #b04a4a 100%); border-radius:4px; }
+.tag-report-row .pct{ font-size:12px; font-weight:600; color: var(--block); font-variant-numeric: tabular-nums; min-width:48px; text-align:right; }
+
+.tag-report-row .stat-cell{
+  display:flex; flex-direction:column; gap:2px; align-items:flex-end;
+}
+.tag-report-row .stat-cell .v{
+  font-size:14px; font-weight:600; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.tag-report-row .stat-cell .l{ font-size:11px; color: var(--ink-4); }
+
+.tag-report-row .chev{ color: var(--ink-4); font-size:14px; text-align:right; transition: color .15s, transform .15s; }
+.tag-report-row:hover .chev{ color: var(--brand); transform: translateX(2px); }
+
+@media (max-width: 900px){
+  .tag-report-row{
+    grid-template-columns: 36px 1fr auto;
+    row-gap: 6px;
+  }
+  .tag-report-row > .bar-cell,
+  .tag-report-row > .stat-cell{ grid-column: 1 / -1; padding-left: 50px; }
+  .tag-report-row > .stat-cell{ flex-direction:row; gap:18px; align-items:baseline; justify-content:flex-start; }
+  .tag-report-row .stat-cell .v{ font-size:12.5px; }
+  .tag-report-row .stat-cell .l{ font-size:10.5px; }
+}
+@media (max-width: 640px){
+  .tag-modal-summary{ grid-template-columns: repeat(2, 1fr); }
+  .tag-detail-row{
+    grid-template-columns: 24px 1fr 70px;
+    gap: 8px;
+  }
+  .tag-detail-row .mini-bar{ display:none; }
+}
+
+/* 标签详情模态框 — 更宽 */
+.tag-modal-panel{ width: min(860px, 94vw); }
+
+.tag-modal-summary{
+  display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;
+  padding: 12px 14px; margin-bottom: 14px;
+  background: var(--surface-2); border-radius: 10px;
+}
+.tag-modal-summary .it{ text-align:center; }
+.tag-modal-summary .it .v{ font-size:18px; font-weight:700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tag-modal-summary .it.block .v{ color: var(--block); }
+.tag-modal-summary .it .l{ font-size:11px; color: var(--ink-4); margin-top:2px; }
+
+.tag-modal-section{
+  margin-top: 14px;
+}
+.tag-modal-section .sec-title{
+  font-size:12px; font-weight:600; color: var(--ink-3);
+  letter-spacing:.06em; text-transform:uppercase;
+  margin: 0 0 10px;
+  display:flex; align-items:center; gap:6px;
+}
+.tag-modal-section .sec-title .pill{
+  display:inline-block; font-size:10.5px; padding:2px 7px; border-radius:8px;
+  background: var(--surface-2); color: var(--ink-3); font-weight:500;
+  letter-spacing:0; text-transform:none;
+}
+
+.tag-detail-list{ display:flex; flex-direction:column; gap:6px; }
+.tag-detail-row{
+  display:grid;
+  grid-template-columns: 28px 1fr minmax(150px, 220px) 90px;
+  gap:10px; align-items:center;
+  padding: 8px 12px; border:1px solid var(--line-2); border-radius:8px; background: var(--surface);
+}
+.tag-detail-row:hover{ background: var(--surface-2); }
+.tag-detail-row .rk{
+  width:22px; height:22px; border-radius:6px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color: var(--ink-3);
+  background: var(--surface-2); border:1px solid var(--line-2);
+}
+.tag-detail-row .nm{ font-size:13px; font-weight:600; color: var(--ink); }
+.tag-detail-row .sub{ font-size:11px; color: var(--ink-4); margin-top:2px; }
+.tag-detail-row .mini-bar{
+  height:6px; background: var(--surface-2); border-radius:3px; overflow:hidden;
+}
+.tag-detail-row .mini-bar > .fill{ height:100%; background: var(--block); border-radius:3px; }
+.tag-detail-row .v{
+  text-align:right; font-size:13px; font-weight:600; color: var(--block);
+  font-variant-numeric: tabular-nums;
+}
+.tag-detail-row .v .vs{ font-size:11px; color: var(--ink-4); font-weight:400; margin-left:4px; }
+.tag-detail-row .v.flat{ color: var(--ink-3); }
+.tag-detail-row .v.warn{ color: var(--warn); }
+.tag-detail-row .v.info{ color: var(--info); }
+
+
+/* 适配窄屏 */
+@media (max-width: 1024px){
+  .app-shell{ grid-template-columns: 1fr; }
+  .sidebar{ position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); }
+  .nav{ flex-direction:row; flex-wrap:wrap; }
+  .sidebar-ctrl{ display:grid; grid-template-columns: repeat(2,1fr); }
+  .content{ padding:24px 20px; }
+}
+
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+<!-- 顶栏 -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-logo">Q</div>
+      <div>
+        <div class="brand-title">质审业务数据分析</div>
+        <div class="brand-sub" id="topbar-meta">数据本地解析 · 不上传服务器</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-ghost hidden" id="btn-reupload">🔄 重新上传</button>
+    </div>
+  </div>
+</header>
+
+<!-- 上传遮罩（首屏未上传时） -->
+<section id="upload-section" class="upload-screen">
+  <div class="upload-card">
+    <div class="upload-icon">📥</div>
+    <div class="upload-title">上传你的审核数据</div>
+    <div class="upload-desc">支持 <code class="kbd">.xlsx</code> / <code class="kbd">.csv</code> · 必备列：拦截理由 / 审核目录 / 分类 / 审核人 / 审核耗时</div>
+    <div id="upload-zone" class="upload-zone">
+      <div class="text-base font-semibold" style="color:var(--ink-2)">点击选择文件，或拖拽到此处</div>
+      <div class="text-xs mt-1" style="color:var(--ink-4)">数据仅在你浏览器内处理，不会上传到服务器</div>
+      <div class="mt-4"><button class="btn-primary" id="btn-pick">📁 选择文件</button></div>
+      <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+    </div>
+  </div>
+</section>
+
+<!-- 主体：侧栏 + 主区 -->
+<div id="dashboard" class="hidden app-shell">
+
+  <!-- 左侧导航 -->
+  <aside class="sidebar">
+    <nav class="nav">
+      <div class="nav-section-label">导航</div>
+      <a class="nav-item active" data-tab="overview">
+        <span class="nav-icon">📌</span><span>概览</span>
+      </a>
+      <a class="nav-item" data-tab="people">
+        <span class="nav-icon">👥</span><span>人员通过率</span>
+      </a>
+      <a class="nav-item" data-tab="dim">
+        <span class="nav-icon">📚</span><span>维度分析</span>
+      </a>
+      <a class="nav-item" data-tab="anomaly">
+        <span class="nav-icon">⚠️</span><span>异常归因</span>
+        <span class="nav-badge" id="nav-anomaly-cnt"></span>
+      </a>
+      <a class="nav-item" data-tab="fast">
+        <span class="nav-icon">⚡</span><span>快审定位</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-ctrl">
+      <div class="nav-section-label" style="margin-top:4px">分析参数</div>
+      <label class="field-v">
+        <span class="field-lbl">最小总审核量</span>
+        <div class="input-pill">
+          <input id="min-total-input" type="number" min="0" value="0" step="10" />
+          <span class="post">条</span>
+        </div>
+      </label>
+      <label class="field-v">
+        <span class="field-lbl">A · 整体异常阈值</span>
+        <div class="input-pill">
+          <input id="thr-overall" type="number" min="0" value="5" step="1" />
+          <span class="post">pp</span>
+        </div>
+      </label>
+      <label class="field-v">
+        <span class="field-lbl">B · 标签异常阈值</span>
+        <div class="input-pill">
+          <input id="thr-tag" type="number" min="0" value="5" step="1" />
+          <span class="post">pp</span>
+        </div>
+      </label>
+      <label class="field-v">
+        <span class="field-lbl">C · 快审异常阈值</span>
+        <div class="input-pill">
+          <input id="thr-fast" type="number" min="0" value="30" step="5" />
+          <span class="post">%</span>
+        </div>
+      </label>
+      <div class="ctrl-tip" id="scope-desc">当前阈值 0：包含全部</div>
+    </div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="content">
+    <!-- 概览 Tab -->
+    <section class="tab-panel active" data-tab="overview">
+      <div class="panel-head">
+        <h2>概览</h2>
+        <p>核心指标、通过 / 拦截结构、异常分布一屏可视化</p>
+      </div>
+
+      <!-- Bento Grid -->
+      <div class="bento">
+        <!-- 大尺寸：通过率环形 + 中心数字 -->
+        <div class="card bento-pass" id="bento-pass">
+          <div class="card-title">整体通过率</div>
+          <p class="card-sub">「无低质问题」=通过</p>
+          <div class="donut-wrap">
+            <div id="chart-donut"></div>
+            <div class="donut-center">
+              <div class="donut-num" id="donut-num">-</div>
+              <div class="donut-lbl">通过率</div>
+            </div>
+          </div>
+          <div class="donut-meta" id="donut-meta"></div>
+        </div>
+
+        <!-- KPI 数字墙 -->
+        <div class="bento-kpis" id="kpi-cards"></div>
+
+        <!-- 拦截理由 Top 横向条 -->
+        <div class="card bento-reason">
+          <div class="card-title">拦截理由 Top 分布</div>
+          <p class="card-sub">出现次数最多的拦截原因（含占比）</p>
+          <div id="chart-reason" class="chart-box mt-3" style="height:340px"></div>
+        </div>
+
+        <!-- 通过/拦截 stacked bar -->
+        <div class="card bento-bar">
+          <div class="card-title">通过 / 拦截结构</div>
+          <p class="card-sub">通过 + 拦截标签明细（按比例分段）</p>
+          <div class="ovr-bar mt-3" id="ovr-bar"></div>
+          <div class="ovr-legend" id="ovr-legend"></div>
+        </div>
+
+        <!-- 时间趋势：天/周维度通过率 vs 拦截率 -->
+        <div class="card bento-trend">
+          <div class="trend-head">
+            <div>
+              <div class="card-title">通过率 / 拦截率 时间趋势</div>
+              <p class="card-sub">按审核时间聚合 · 可切换天/周维度</p>
+            </div>
+            <div class="trend-switch" id="trend-switch">
+              <button class="trend-btn active" data-gran="day">按天</button>
+              <button class="trend-btn" data-gran="week">按周</button>
+            </div>
+          </div>
+          <div id="chart-trend" class="chart-box mt-3" style="height:300px"></div>
+          <div id="trend-empty" class="trend-empty hidden">暂无可用的「审核时间」字段</div>
+        </div>
+
+        <!-- 耗时直方图 -->
+        <div class="card bento-hist">
+          <div class="card-title">审核耗时分布</div>
+          <p class="card-sub">不同耗时区间的审核条数</p>
+          <div id="chart-hist" class="chart-box mt-3" style="height:340px"></div>
+        </div>
+
+        <!-- 异常洞察卡 -->
+        <div class="card insight-card bento-insight" id="insight-card">
+          <div class="insight-head">
+            <div class="card-title">⚠ 异常洞察</div>
+            <button class="btn-ghost" data-goto="anomaly">查看详情 →</button>
+          </div>
+          <div id="insight-content" class="insight-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 人员通过率 Tab -->
+    <section class="tab-panel" data-tab="people">
+      <div class="panel-head">
+        <div>
+          <h2>人员通过率</h2>
+          <p>每位审核人的通过 / 拦截结构 · 偏松 偏严 一目了然</p>
+        </div>
+      </div>
+
+      <!-- 顶部统计：分布图 + 偏松偏严 Top -->
+      <div class="people-top">
+        <div class="card">
+          <div class="card-title">通过率分布</div>
+          <p class="card-sub">所有审核人通过率的频次分布（10% 一桶）</p>
+          <div id="chart-pass-hist" class="chart-box mt-3" style="height:230px"></div>
+        </div>
+        <div class="card people-rank">
+          <div class="card-title rank-loose">偏松 Top 5（通过率最高）</div>
+          <div id="rank-loose" class="rank-list"></div>
+        </div>
+        <div class="card people-rank">
+          <div class="card-title rank-strict">偏严 Top 5（通过率最低）</div>
+          <div id="rank-strict" class="rank-list"></div>
+        </div>
+      </div>
+
+      <!-- 完整列表 -->
+      <div class="card mt-4">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+          <span class="text-xs" style="color:var(--ink-4)" id="rev-summary">-</span>
+          <div class="flex items-center gap-3 text-xs" style="color:var(--ink-4)">
+            <span>排序</span>
+            <select id="rev-sort">
+              <option value="abn-first">异常优先</option>
+              <option value="diff-desc">通过率差值 高→低</option>
+              <option value="diff-asc">通过率差值 低→高</option>
+              <option value="total-desc">总量 高→低</option>
+              <option value="pass-desc">通过率 高→低</option>
+              <option value="pass-asc">通过率 低→高</option>
+            </select>
+          </div>
+        </div>
+        <div id="rev-grid" class="rev-list"></div>
+        <div id="rev-pager" class="pager"></div>
+      </div>
+    </section>
+
+    <!-- 维度分析 Tab -->
+    <section class="tab-panel" data-tab="dim">
+      <div class="panel-head">
+        <div>
+          <h2>维度分析</h2>
+          <p>每个审核目录、每个分类的通过 / 拦截率分布（不区分审核人）</p>
+        </div>
+      </div>
+
+      <!-- 双图：目录 vs 分类 通过率 Top 横向条 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-title">审核目录 · 通过率 Top 12</div>
+          <p class="card-sub">水平条形图 · 红色=低于均值 · 灰色虚线=整体均值</p>
+          <div id="chart-dim-cat" class="chart-box mt-3" style="height:380px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">分类 · 通过率 Top 12</div>
+          <p class="card-sub">水平条形图 · 红色=低于均值 · 灰色虚线=整体均值</p>
+          <div id="chart-dim-sub" class="chart-box mt-3" style="height:380px"></div>
+        </div>
+      </div>
+
+      <!-- 明细表 Tab 切换 -->
+      <div class="card mt-4">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+          <div class="tab-bar" id="dim-tabs">
+            <button class="tab-btn active" data-tab="cat">按审核目录</button>
+            <button class="tab-btn" data-tab="sub">按分类</button>
+          </div>
+          <span class="text-xs" style="color:var(--ink-4)" id="dim-meta"></span>
+        </div>
+        <div class="table-wrap" style="max-height:380px"><table class="t" id="dim-table"></table></div>
+      </div>
+    </section>
+
+    <!-- 异常归因 Tab -->
+    <section class="tab-panel" data-tab="anomaly">
+      <div class="panel-head">
+        <div>
+          <h2>异常归因</h2>
+          <p>三类异常并行识别 · <b style="color:var(--block)">A</b> 个人整体拦截率 · <b style="color:var(--warn)">B</b> 标签级拦截率 · <b style="color:var(--info)">C</b> 快审占比</p>
+        </div>
+      </div>
+
+      <!-- ABC 三类统计卡（可点击查看详情） -->
+      <div class="abc-cards">
+        <div class="abc-card abc-A clickable" data-abc="A" role="button" tabindex="0">
+          <div class="abc-head">
+            <span class="abc-tag">A</span>
+            <span class="abc-name">整体异常</span>
+            <span class="abc-cta">查看详情 →</span>
+          </div>
+          <div class="abc-num" id="abc-A-num">-</div>
+          <div class="abc-sub" id="abc-A-sub">-</div>
+          <div class="abc-bar" id="abc-A-bar"></div>
+        </div>
+        <div class="abc-card abc-B clickable" data-abc="B" role="button" tabindex="0">
+          <div class="abc-head">
+            <span class="abc-tag">B</span>
+            <span class="abc-name">标签异常</span>
+            <span class="abc-cta">查看详情 →</span>
+          </div>
+          <div class="abc-num" id="abc-B-num">-</div>
+          <div class="abc-sub" id="abc-B-sub">-</div>
+          <div class="abc-bar" id="abc-B-bar"></div>
+        </div>
+        <div class="abc-card abc-C clickable" data-abc="C" role="button" tabindex="0">
+          <div class="abc-head">
+            <span class="abc-tag">C</span>
+            <span class="abc-name">快审异常</span>
+            <span class="abc-cta">查看详情 →</span>
+          </div>
+          <div class="abc-num" id="abc-C-num">-</div>
+          <div class="abc-sub" id="abc-C-sub">-</div>
+          <div class="abc-bar" id="abc-C-bar"></div>
+        </div>
+      </div>
+
+      <!-- 标签异常分析报告 -->
+      <div class="card mt-4 tag-report-card">
+        <div class="trend-head">
+          <div>
+            <div class="card-title">🏷️ 标签异常分析报告</div>
+            <p class="card-sub">按拦截标签聚合 · 显示触发人数与涉及分类数 · 点击任意行查看详情</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs" style="color:var(--ink-4)">
+            <span>展示</span>
+            <select id="tag-report-topn">
+              <option value="3">Top 3</option>
+              <option value="5">Top 5</option>
+              <option value="10" selected>Top 10</option>
+              <option value="0">全部</option>
+            </select>
+          </div>
+        </div>
+        <div id="tag-report-list" class="tag-report-list mt-3"></div>
+        <div id="tag-report-empty" class="abc-modal-empty hidden">暂无拦截标签数据</div>
+      </div>
+    </section>
+
+    <!-- ABC 详情模态框 -->
+    <div class="abc-modal hidden" id="abc-modal">
+      <div class="abc-modal-mask" data-close="1"></div>
+      <div class="abc-modal-panel">
+        <div class="abc-modal-head">
+          <div class="abc-modal-title" id="abc-modal-title">异常详情</div>
+          <button class="abc-modal-close" data-close="1">×</button>
+        </div>
+        <div class="abc-modal-body" id="abc-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 标签详情模态框 -->
+    <div class="abc-modal hidden" id="tag-modal">
+      <div class="abc-modal-mask" data-close="1"></div>
+      <div class="abc-modal-panel tag-modal-panel">
+        <div class="abc-modal-head">
+          <div class="abc-modal-title" id="tag-modal-title">标签详情</div>
+          <button class="abc-modal-close" data-close="1">×</button>
+        </div>
+        <div class="abc-modal-body" id="tag-modal-body"></div>
+      </div>
+    </div>
+
+
+    <!-- 快审定位 Tab -->
+    <section class="tab-panel" data-tab="fast">
+      <div class="panel-head">
+        <div>
+          <h2>快审定位</h2>
+          <p>看哪些审核人快审占比偏高 · 点击查看其每条快审 case 详情</p>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-xs" style="color:var(--ink-4)">
+          <span>耗时阈值</span>
+          <select id="fast-threshold">
+            <option value="5">&lt; 5 秒</option>
+            <option value="10" selected>&lt; 10 秒</option>
+            <option value="15">&lt; 15 秒</option>
+            <option value="30">&lt; 30 秒</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 快审占比分布图 -->
+      <div class="card mb-4">
+        <div class="card-title">快审占比分布</div>
+        <p class="card-sub">所有审核人按快审占比分桶（10% 一桶）· 红色=超过阈值的高频快审区间</p>
+        <div id="chart-fast-hist" class="chart-box mt-3" style="height:200px"></div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-5 gap-5">
+        <div class="xl:col-span-2 card">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="card-title">审核人快审排行</div>
+              <p class="card-sub">占比 ≥ 30% 高亮警示</p>
+            </div>
+            <span id="fast-meta" class="text-xs" style="color:var(--muted)"></span>
+          </div>
+          <div id="ppl-grid" class="ppl-grid"></div>
+        </div>
+
+        <div class="xl:col-span-3 detail-card">
+          <div id="detail-empty" class="detail-empty">
+            <div class="text-5xl mb-3">👈</div>
+            <div class="text-sm">请点击左侧任一审核人</div>
+            <div class="text-xs mt-1" style="color:var(--muted)">查看其快审 case 详情</div>
+          </div>
+          <div id="detail-content" class="hidden">
+            <div class="detail-head">
+              <div>
+                <div class="text-base font-bold" style="color:var(--ink)" id="detail-name">-</div>
+                <div class="text-xs mt-0.5" style="color:var(--ink-4)" id="detail-sub">-</div>
+              </div>
+              <div class="flex items-center">
+                <div class="mini-stat"><span class="v" id="detail-total">-</span><span class="l">总审核数</span></div>
+                <div class="mini-stat"><span class="v num-neg" id="detail-fast">-</span><span class="l">快审条数</span></div>
+                <div class="mini-stat"><span class="v" id="detail-rate">-</span><span class="l">快审占比</span></div>
+                <div class="mini-stat"><span class="v" id="detail-avg">-</span><span class="l">快审均耗时</span></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <div class="text-xs mb-2" style="color:var(--ink-4)">该人快审耗时分布</div>
+                <div id="detail-hist" style="height:180px"></div>
+              </div>
+              <div>
+                <div class="text-xs mb-2" style="color:var(--ink-4)">快审 case 判定占比</div>
+                <div id="detail-pie" style="height:180px"></div>
+              </div>
+            </div>
+            <div class="text-xs mb-2" style="color:var(--ink-4)">快审 case 详情（默认按耗时升序）</div>
+            <div class="table-wrap" style="max-height:420px"><table class="t" id="detail-table"></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+<footer class="app-footer">
+  数据本地解析 · 不上传服务器 · 适用于一次性快速诊断质审尺度
+</footer>
+
+<script>
+/* ============== 工具 ============== */
+const fmt = n => n==null ? '-' : Number(n).toLocaleString('zh-CN');
+const pctFmt = v => v==null ? '-' : (Number(v).toFixed(2)+'%');
+const PASS_TAG = '无低质问题';
+const ABN_THRESHOLD = 5; // pp，含等号
+const AB_MIN_SAMPLE = 10;
+const HIGH_FAST_RATIO = 30;
+
+let RAW_ALL = [];      // 原始全量
+let DATA = [];         // 当前作用域（受切换影响）
+let ABNORMAL_PEOPLE = [];
+let OVERALL = 0;       // 当前作用域通过率
+let OVERALL_ALL = 0;   // 全量通过率（模块4恒用）
+let SUMMARY = {};
+let SUMMARY_ALL = {};
+let SORT_STATE = { table:'reviewer-table', col:null, dir:'desc' };
+function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ============== 上传交互 ============== */
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+document.getElementById('btn-pick').addEventListener('click', e=>{ e.stopPropagation(); fileInput.click(); });
+uploadZone.addEventListener('click', ()=> fileInput.click());
+['dragenter','dragover'].forEach(ev=> uploadZone.addEventListener(ev, e=>{ e.preventDefault(); uploadZone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev=> uploadZone.addEventListener(ev, e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); }));
+uploadZone.addEventListener('drop', e=>{
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if (f) handleFile(f);
+});
+document.getElementById('btn-reupload').addEventListener('click', ()=>{
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('upload-section').classList.remove('hidden');
+  document.getElementById('btn-reupload').classList.add('hidden');
+  document.getElementById('topbar-meta').textContent = '数据本地解析 · 不上传服务器';
+  fileInput.value = '';
+});
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type:'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+      if (!rows.length){ alert('文件为空或无法解析'); return; }
+      const required = ['拦截理由','审核目录','分类','审核人','审核耗时'];
+      const missing = required.filter(k=> !(k in rows[0]));
+      if (missing.length){ alert('缺少必备列：' + missing.join('、')); return; }
+      RAW_ALL = rows.map(r=>({
+        feedid:   String(r['feedid']||r['Feedid']||r['FeedID']||r['id']||'').trim(),
+        审核时间: String(r['审核时间']||'').trim(),
+        账号id:   String(r['账号id']||r['账号ID']||'').trim(),
+        拦截理由: String(r['拦截理由']||'').trim() || '未填写',
+        审核目录: String(r['审核目录']||'').trim() || '未填写',
+        分类:     String(r['分类']||'').trim() || '未填写',
+        审核人:   String(r['审核人']||'').trim() || '未填写',
+        审核耗时: Number(r['审核耗时']) || 0,
+      }));
+      // 顶栏元数据
+      document.getElementById('topbar-meta').innerHTML =
+        `📄 <b style="color:var(--ink-2)">${escapeHtml(file.name)}</b> · ${fmt(RAW_ALL.length)} 条 · ${(file.size/1024).toFixed(1)} KB`;
+      document.getElementById('btn-reupload').classList.remove('hidden');
+      // 切到看板
+      document.getElementById('upload-section').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      bootstrap();
+    }catch(err){
+      console.error(err);
+      alert('解析失败：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ============== 主流程 ============== */
+let MIN_TOTAL = 0;
+let THR_OVERALL = 5;   // A 整体异常阈值 pp
+let THR_TAG = 5;       // B 标签异常阈值 pp
+let THR_FAST = 30;     // C 快审异常阈值 %
+let PERSON_STATS = {};
+let VALID_PEOPLE = new Set();
+
+function bootstrap(){
+  PERSON_STATS = {};
+  RAW_ALL.forEach(r=>{
+    if (!PERSON_STATS[r.审核人]) PERSON_STATS[r.审核人] = { total:0, pass:0, block:0 };
+    const o = PERSON_STATS[r.审核人];
+    o.total++;
+    if (r.拦截理由===PASS_TAG) o.pass++; else o.block++;
+  });
+  SUMMARY_ALL = computeSummary(RAW_ALL);
+  OVERALL_ALL = SUMMARY_ALL.pass_rate;
+
+  // 绑定输入框
+  const bindNum = (id, setter) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', ()=>{
+      setter(Math.max(0, parseFloat(el.value)||0));
+      applyScope();
+    });
+  };
+  bindNum('min-total-input', v=> MIN_TOTAL = v);
+  bindNum('thr-overall', v=> THR_OVERALL = v);
+  bindNum('thr-tag', v=> THR_TAG = v);
+  bindNum('thr-fast', v=> THR_FAST = v);
+
+  initDimTabs();
+  initFastControls();
+  initRevSort();
+  initAbToolbar();
+  initTagReport();
+  initTrendSwitch();
+  initTabs();
+  applyScope();
+}
+
+function applyScope(){
+  VALID_PEOPLE = new Set(
+    Object.entries(PERSON_STATS)
+      .filter(([_,v])=> v.total >= MIN_TOTAL)
+      .map(([k])=> k)
+  );
+  if (MIN_TOTAL > 0){
+    DATA = RAW_ALL.filter(r=> VALID_PEOPLE.has(r.审核人));
+  } else {
+    DATA = RAW_ALL;
+    VALID_PEOPLE = new Set(Object.keys(PERSON_STATS));
+  }
+  SUMMARY = computeSummary(DATA);
+  OVERALL = SUMMARY.pass_rate;
+
+  updateScopeBar();
+  renderKPI();
+  renderOverallChart();
+  renderReasonChart();
+  renderReviewerCards();
+  renderDim();
+  renderAbCards();
+  renderTagReport();
+  renderPplGrid();
+  renderInsight();
+}
+
+function updateScopeBar(){
+  const desc = document.getElementById('scope-desc');
+  if (!desc) return;
+  const filtered = RAW_ALL.length - DATA.length;
+  const filteredPpl = Object.keys(PERSON_STATS).length - VALID_PEOPLE.size;
+  if (MIN_TOTAL > 0){
+    desc.classList.add('cleaned');
+    desc.innerHTML = `已过滤 <b>${filteredPpl}</b> 位小样本（<b>${fmt(filtered)}</b> 条）· 展示 <b>${fmt(DATA.length)}</b> 条`;
+  } else {
+    desc.classList.remove('cleaned');
+    desc.innerHTML = `<b>${Object.keys(PERSON_STATS).length}</b> 位审核人 · <b>${fmt(RAW_ALL.length)}</b> 条记录`;
+  }
+}
+
+function computeSummary(arr){
+  const total = arr.length;
+  let pass=0, block=0, durSum=0;
+  arr.forEach(r=>{ if (r.拦截理由===PASS_TAG) pass++; else block++; durSum+=r.审核耗时; });
+  return {
+    total, pass, block,
+    pass_rate: total ? +(pass/total*100).toFixed(2) : 0,
+    block_rate: total ? +(block/total*100).toFixed(2) : 0,
+    avg_dur: total ? +(durSum/total).toFixed(2) : 0,
+    reviewer_count: new Set(arr.map(r=>r.审核人)).size,
+    cat_count: new Set(arr.map(r=>r.审核目录)).size,
+    sub_count: new Set(arr.map(r=>r.分类)).size,
+  };
+}
+
+/* ===== KPI ===== */
+function renderKPI(){
+  const s = SUMMARY, b = SUMMARY_ALL;
+  function delta(curr, base, suffix=''){
+    if (MIN_TOTAL <= 0) return '';
+    const d = +(curr - base).toFixed(2);
+    if (Math.abs(d) < 0.01) return `<span class="delta delta-flat">±0${suffix}</span>`;
+    const cls = d > 0 ? 'delta-up' : 'delta-down';
+    const sign = d > 0 ? '+' : '';
+    return `<span class="delta ${cls}">${sign}${d}${suffix}</span>`;
+  }
+  const items = [
+    { label:'审核总量', value:fmt(s.total), unit:'条', icon:'📦', cls:'', d:'' },
+    { label:'审核人数', value:fmt(s.reviewer_count), unit:'人', icon:'👥', cls:'warn', d:'' },
+    { label:'审核目录数', value:fmt(s.cat_count), unit:'个', icon:'📚', cls:'violet', d:'' },
+    { label:'分类数', value:fmt(s.sub_count), unit:'类', icon:'🏷️', cls:'cyan', d:'' },
+  ];
+  document.getElementById('kpi-cards').innerHTML = items.map(it=>`
+    <div class="kpi ${it.cls}">
+      <div class="icon">${it.icon}</div>
+      <div class="label">${it.label}</div>
+      <div class="value number">${it.value}<span class="unit">${it.unit}</span>${it.d}</div>
+    </div>
+  `).join('');
+}
+
+/* ===== 模块1图表 ===== */
+/* 通过/拦截：横向 stacked bar + KPI + legend（替代双层环形） */
+const OVR_PALETTE = ['#0d9488','#b45561','#c89a5a','#5a8aa8','#7e7cb3','#8a6c4a','#a37f5e','#9c4a55','#c97884','#3e6f8a'];
+/* ====== 概览图表 · 多图Bento ====== */
+const PALETTE_BLOCK = ['#b04a4a','#c47474','#a87a3c','#ccaa6e','#4a6f8a','#7e96b0','#6a5f8c','#9e95b3','#3e6f6f','#7ba3a3'];
+const C_PASS = '#2f7d6d';
+const C_BLOCK = '#b04a4a';
+const C_BRAND = '#1a4d4d';
+const ECHART_TEXT = { color: '#555553' };
+
+function disposeChart(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  const inst = echarts.getInstanceByDom(el);
+  inst && inst.dispose();
+  return el;
+}
+
+function renderOverallChart(){
+  // —— 大 Donut + 中心数字
+  const numEl = document.getElementById('donut-num');
+  const metaEl = document.getElementById('donut-meta');
+  if (numEl) numEl.textContent = SUMMARY.pass_rate + '%';
+  if (metaEl){
+    let html = `
+      <div class="donut-meta-item"><div class="v pass">${fmt(SUMMARY.pass)}</div><div class="l">通过</div></div>
+      <div class="donut-meta-item"><div class="v block">${fmt(SUMMARY.block)}</div><div class="l">拦截</div></div>
+      <div class="donut-meta-item"><div class="v">${fmt(SUMMARY.total)}</div><div class="l">总量</div></div>
+    `;
+    metaEl.innerHTML = html;
+  }
+  const dEl = disposeChart('chart-donut');
+  if (dEl){
+    echarts.init(dEl).setOption({
+      tooltip:{ trigger:'item', formatter:'{b}: {c} ({d}%)', backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12} },
+      series:[{
+        type:'pie', radius:['72%','94%'], center:['50%','50%'],
+        avoidLabelOverlap:true,
+        itemStyle:{ borderColor:'#fff', borderWidth:3 },
+        label:{ show:false },
+        labelLine:{ show:false },
+        data:[
+          { name:'通过', value:SUMMARY.pass, itemStyle:{ color: C_PASS } },
+          { name:'拦截', value:SUMMARY.block, itemStyle:{ color: C_BLOCK } },
+        ]
+      }]
+    });
+  }
+
+  // —— stacked bar + legend（保留）
+  const tagMap = {};
+  DATA.forEach(r=>{ if (r.拦截理由 !== PASS_TAG) tagMap[r.拦截理由] = (tagMap[r.拦截理由]||0) + 1; });
+  const tagArr = Object.entries(tagMap).map(([n,v])=>({ name:n, value:v })).sort((a,b)=> b.value-a.value);
+  const total = SUMMARY.total;
+  const segs = [{ name:'通过', value:SUMMARY.pass, color: C_PASS }];
+  tagArr.forEach((t,i)=> segs.push({ name:t.name, value:t.value, color: PALETTE_BLOCK[i % PALETTE_BLOCK.length] }));
+
+  const bar = document.getElementById('ovr-bar');
+  if (bar){
+    bar.innerHTML = segs.map(s=>{
+      const pct = +(s.value/total*100).toFixed(2);
+      return `<div class="ovr-seg" style="width:${pct}%; background:${s.color}" title="${escapeHtml(s.name)}: ${fmt(s.value)} (${pct}%)"></div>`;
+    }).join('');
+  }
+  const legend = document.getElementById('ovr-legend');
+  if (legend){
+    legend.innerHTML = segs.map(s=>{
+      const pct = +(s.value/total*100).toFixed(2);
+      return `<div class="ovr-leg"><span class="dot" style="background:${s.color}"></span><span class="lbl" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span><span class="v">${fmt(s.value)}<span class="pct">${pct}%</span></span></div>`;
+    }).join('');
+  }
+
+  renderTrendChart();
+  renderHistChart();
+}
+
+function renderReasonChart(){
+  const map = {};
+  DATA.forEach(r=>{ if (r.拦截理由 !== PASS_TAG) map[r.拦截理由] = (map[r.拦截理由]||0) + 1; });
+  const arr = Object.entries(map).map(([n,v])=>({ name:n, value:v }))
+    .sort((a,b)=> b.value - a.value).slice(0, 10);
+  const total = arr.reduce((s,x)=> s+x.value, 0);
+  const el = disposeChart('chart-reason');
+  if (!el || !arr.length) return;
+  echarts.init(el).setOption({
+    tooltip:{
+      trigger:'axis', axisPointer:{ type:'shadow' },
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12},
+      formatter: p => {
+        const x = arr[p[0].dataIndex];
+        const pct = (x.value/total*100).toFixed(1);
+        return `<b>${escapeHtml(x.name)}</b><br/>数量：${fmt(x.value)}<br/>占拦截：${pct}%`;
+      }
+    },
+    grid:{ left:8, right:60, top:8, bottom:8, containLabel:true },
+    xAxis:{
+      type:'value', splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11 },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    yAxis:{
+      type:'category', data: arr.map(x=>x.name).reverse(),
+      axisLine:{ show:false }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:12,
+        formatter: v => v.length>10 ? v.slice(0,10)+'…' : v }
+    },
+    series:[{
+      type:'bar', data: arr.map(x=>x.value).reverse(),
+      barMaxWidth:18,
+      itemStyle:{ borderRadius:[0,4,4,0], color: C_BLOCK },
+      label:{ show:true, position:'right', fontSize:11, color: '#7a7a78',
+        formatter: p => {
+          const v = arr.slice().reverse()[p.dataIndex];
+          return fmt(v.value) + '  (' + (v.value/total*100).toFixed(1) + '%)';
+        } }
+    }]
+  });
+}
+
+/* 新增：通过率 / 拦截率 时间趋势 — 按天/周聚合 */
+let TREND_GRAN = 'day'; // 'day' | 'week'
+function parseAuditDate(s){
+  if (!s) return null;
+  s = String(s).trim();
+  if (!s) return null;
+  // 兼容 "YYYY-MM-DD HH:mm:ss" / "YYYY/MM/DD" / Excel 序列号
+  if (/^\d+(\.\d+)?$/.test(s)){
+    const n = +s;
+    if (n > 20000 && n < 80000){ // excel serial
+      const base = Date.UTC(1899, 11, 30);
+      return new Date(base + n * 86400000);
+    }
+  }
+  const norm = s.replace(/\//g,'-').replace('T',' ');
+  const m = norm.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m){
+    return new Date(+m[1], +m[2]-1, +m[3]);
+  }
+  const d = new Date(norm);
+  return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function fmtDateKey(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function getWeekKey(d){
+  // ISO 周一为周起点
+  const dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = (dt.getDay() + 6) % 7; // 0=Mon
+  dt.setDate(dt.getDate() - day);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function renderTrendChart(){
+  const el = disposeChart('chart-trend');
+  const emptyEl = document.getElementById('trend-empty');
+  if (!el) return;
+
+  // 聚合
+  const map = new Map(); // key -> {pass, block, total}
+  let hasDate = false;
+  DATA.forEach(r=>{
+    const d = parseAuditDate(r.审核时间);
+    if (!d) return;
+    hasDate = true;
+    const key = TREND_GRAN === 'week' ? getWeekKey(d) : fmtDateKey(d);
+    if (!map.has(key)) map.set(key, { pass:0, block:0, total:0 });
+    const o = map.get(key);
+    o.total++;
+    if (r.拦截理由 === PASS_TAG) o.pass++; else o.block++;
+  });
+
+  if (!hasDate || !map.size){
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    el.style.display = 'none';
+    return;
+  }
+  if (emptyEl) emptyEl.classList.add('hidden');
+  el.style.display = '';
+
+  const keys = Array.from(map.keys()).sort();
+  const passArr = keys.map(k=> +(map.get(k).pass / map.get(k).total * 100).toFixed(2));
+  const blockArr = keys.map(k=> +(map.get(k).block / map.get(k).total * 100).toFixed(2));
+  const totalArr = keys.map(k=> map.get(k).total);
+
+  // 缩短 x 轴标签
+  const xLabels = keys.map(k=>{
+    if (TREND_GRAN === 'week') return k.slice(5) + ' 周';
+    return k.slice(5);
+  });
+
+  echarts.init(el).setOption({
+    color: [C_PASS, C_BLOCK],
+    tooltip:{
+      trigger:'axis',
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12},
+      formatter: ps => {
+        const i = ps[0].dataIndex;
+        return `<b>${keys[i]}</b><br/>` +
+          `通过率：<b style="color:#5ec9b0">${passArr[i]}%</b><br/>` +
+          `拦截率：<b style="color:#ff9999">${blockArr[i]}%</b><br/>` +
+          `<span style="color:#aaa">样本数：${fmt(totalArr[i])}</span>`;
+      }
+    },
+    legend:{ show:true, top:0, right:0, itemWidth:10, itemHeight:10, textStyle:{ color:'#7a7a78', fontSize:11 } },
+    grid:{ left:40, right:24, top:30, bottom:40, containLabel:true },
+    xAxis:{
+      type:'category', data: xLabels,
+      axisLine:{ lineStyle:{ color:'#dcdbd5' } }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:10.5, rotate: xLabels.length>14 ? 30 : 0 }
+    },
+    yAxis:{
+      type:'value', min:0, max:100,
+      splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11, formatter:'{value}%' },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    series:[
+      {
+        name:'通过率', type:'line', data: passArr, smooth:true, symbol:'circle', symbolSize:6,
+        lineStyle:{ width:2 },
+        areaStyle:{ color:{ type:'linear', x:0, y:0, x2:0, y2:1,
+          colorStops:[ {offset:0, color:'rgba(47,125,109,.18)'}, {offset:1, color:'rgba(47,125,109,0)'} ] } }
+      },
+      {
+        name:'拦截率', type:'line', data: blockArr, smooth:true, symbol:'circle', symbolSize:6,
+        lineStyle:{ width:2 },
+        areaStyle:{ color:{ type:'linear', x:0, y:0, x2:0, y2:1,
+          colorStops:[ {offset:0, color:'rgba(176,74,74,.18)'}, {offset:1, color:'rgba(176,74,74,0)'} ] } }
+      }
+    ]
+  });
+}
+function initTrendSwitch(){
+  const sw = document.getElementById('trend-switch');
+  if (!sw || sw.dataset.bound) return;
+  sw.dataset.bound = '1';
+  sw.addEventListener('click', e=>{
+    const btn = e.target.closest('.trend-btn');
+    if (!btn) return;
+    TREND_GRAN = btn.dataset.gran;
+    sw.querySelectorAll('.trend-btn').forEach(b=> b.classList.toggle('active', b===btn));
+    renderTrendChart();
+  });
+}
+
+/* 新增：审核耗时直方图（带全局基线） */
+function renderHistChart(){
+  const el = disposeChart('chart-hist');
+  if (!el) return;
+  const buckets = [
+    { name:'<10s', min:0, max:10 },
+    { name:'10-30s', min:10, max:30 },
+    { name:'30-60s', min:30, max:60 },
+    { name:'1-2分', min:60, max:120 },
+    { name:'2-5分', min:120, max:300 },
+    { name:'>5分', min:300, max:Infinity },
+  ];
+  const cnt = buckets.map(()=> 0);
+  const passCnt = buckets.map(()=> 0);
+  DATA.forEach(r=>{
+    const d = r.审核耗时;
+    for (let i=0; i<buckets.length; i++){
+      if (d >= buckets[i].min && d < buckets[i].max){
+        cnt[i]++;
+        if (r.拦截理由 === PASS_TAG) passCnt[i]++;
+        break;
+      }
+    }
+  });
+  const blockCnt = cnt.map((v,i)=> v - passCnt[i]);
+
+  echarts.init(el).setOption({
+    tooltip:{
+      trigger:'axis', axisPointer:{ type:'shadow' },
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12},
+      formatter: ps =>{
+        const idx = ps[0].dataIndex;
+        const t = cnt[idx];
+        const pct = SUMMARY.total ? (t/SUMMARY.total*100).toFixed(1) : 0;
+        return `<b>${buckets[idx].name}</b><br/>总条数：${fmt(t)} (${pct}%)<br/>通过：${fmt(passCnt[idx])}<br/>拦截：${fmt(blockCnt[idx])}`;
+      }
+    },
+    grid:{ left:30, right:24, top:30, bottom:30, containLabel:true },
+    legend:{ bottom:0, textStyle:{color:'#555553', fontSize:11}, itemWidth:10, itemHeight:8 },
+    xAxis:{
+      type:'category', data: buckets.map(b=>b.name),
+      axisLine:{ show:false }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11 }
+    },
+    yAxis:{
+      type:'value',
+      splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11 },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    series:[
+      { name:'通过', type:'bar', stack:'t', data: passCnt, barMaxWidth:36,
+        itemStyle:{ color: C_PASS, borderRadius:[0,0,0,0] } },
+      { name:'拦截', type:'bar', stack:'t', data: blockCnt, barMaxWidth:36,
+        itemStyle:{ color: C_BLOCK, borderRadius:[4,4,0,0] } },
+    ]
+  });
+}
+
+/* ===== 模块2：人维度表 ===== */
+function buildReviewerRows(){
+  const map = {};
+  DATA.forEach(r=>{
+    const k = r.审核人;
+    if (!map[k]) map[k] = { 审核人:k, 总量:0, 通过量:0, 拦截量:0, 耗时和:0 };
+    map[k].总量++;
+    map[k].耗时和 += r.审核耗时;
+    if (r.拦截理由===PASS_TAG) map[k].通过量++;
+    else map[k].拦截量++;
+  });
+  return Object.values(map).map(o=>{
+    const 通过率 = +(o.通过量/o.总量*100).toFixed(2);
+    const 拦截率 = +(o.拦截量/o.总量*100).toFixed(2);
+    const diff = +(通过率 - OVERALL).toFixed(2);
+    let abn = '正常', abnCls = 'pill-ok';
+    if (diff >= ABN_THRESHOLD){ abn = '审核尺度偏松'; abnCls = 'pill-loose'; }
+    else if (diff <= -ABN_THRESHOLD){ abn = '审核尺度偏严'; abnCls = 'pill-strict'; }
+    return {
+      审核人:o.审核人, 总量:o.总量, 通过量:o.通过量, 拦截量:o.拦截量,
+      通过率, 拦截率, 通过率差值pp:diff,
+      平均耗时: +(o.耗时和/o.总量).toFixed(2),
+      异常分析: abn, _abnCls: abnCls,
+    };
+  });
+}
+let REV_SORT = 'abn-first';
+let REV_PAGE = 1;
+const REV_PAGE_SIZE = 10;
+function initRevSort(){
+  const sel = document.getElementById('rev-sort');
+  if (!sel) return;
+  sel.value = REV_SORT;
+  sel.addEventListener('change', ()=>{
+    REV_SORT = sel.value;
+    REV_PAGE = 1;
+    renderReviewerCards();
+  });
+}
+/* 通过率分布直方图（10% 一桶） */
+function renderPassHist(){
+  const el = disposeChart('chart-pass-hist');
+  if (!el) return;
+  const buckets = Array(10).fill(0);
+  buildReviewerRows().forEach(r=>{
+    const idx = Math.min(9, Math.floor(r.通过率/10));
+    buckets[idx]++;
+  });
+  const labels = buckets.map((_,i)=> `${i*10}-${i*10+10}%`);
+  echarts.init(el).setOption({
+    tooltip:{
+      trigger:'axis', axisPointer:{ type:'shadow' },
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12}
+    },
+    grid:{ left:30, right:24, top:16, bottom:30, containLabel:true },
+    xAxis:{
+      type:'category', data:labels,
+      axisLine:{ show:false }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:10.5, interval:0 }
+    },
+    yAxis:{
+      type:'value', minInterval:1,
+      splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11 },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    series:[{
+      type:'bar', data: buckets, barMaxWidth:36,
+      itemStyle:{
+        borderRadius:[3,3,0,0],
+        color: (p)=>{
+          // 整体均值所在桶高亮
+          const ovrBucket = Math.min(9, Math.floor(OVERALL/10));
+          if (p.dataIndex === ovrBucket) return C_BRAND;
+          return '#9ab3a8';
+        }
+      },
+      label:{ show:true, position:'top', fontSize:10.5, color: '#7a7a78',
+        formatter: p => p.value || '' },
+      markLine:{
+        silent:true, symbol:'none',
+        lineStyle:{ color:'#a3a39f', type:'dashed', width:1 },
+        label:{ formatter:`整体均值 ${OVERALL}%`, color:'#7a7a78', fontSize:10.5, position:'middle' },
+        data:[{ xAxis: Math.min(9, Math.floor(OVERALL/10)) }]
+      }
+    }]
+  });
+}
+
+/* Top 偏松/偏严 榜单 */
+function renderTopRanks(){
+  const looseEl = document.getElementById('rank-loose');
+  const strictEl = document.getElementById('rank-strict');
+  if (!looseEl || !strictEl) return;
+
+  const rows = buildReviewerRows();
+  const sorted = [...rows].sort((a,b)=> b.通过率 - a.通过率);
+  const loose = sorted.slice(0, 5);
+  const strict = sorted.slice(-5).reverse();
+
+  const renderItem = (r, idx, type)=>{
+    const cls = type==='loose' ? 'up' : 'down';
+    return `
+      <div class="rank-item">
+        <span class="rank-no rk-${idx+1}">${idx+1}</span>
+        <span class="rank-name" title="${escapeHtml(r.审核人)}">${escapeHtml(r.审核人)}</span>
+        <span class="text-xs" style="color:var(--ink-4)">${fmt(r.总量)}</span>
+        <span class="rank-rate ${cls}">${r.通过率}%</span>
+      </div>`;
+  };
+  looseEl.innerHTML = loose.map((r,i)=> renderItem(r,i,'loose')).join('') || '<div class="ab-empty-line">暂无数据</div>';
+  strictEl.innerHTML = strict.map((r,i)=> renderItem(r,i,'strict')).join('') || '<div class="ab-empty-line">暂无数据</div>';
+}
+
+function renderReviewerCards(){
+  renderPassHist();
+  renderTopRanks();
+  const rows = buildReviewerRows();
+  const _OVR = OVERALL;
+
+  // 异常名单（用于"异常优先"排序与角标）
+  const abnMap = new Map(); // name -> {flagA,flagB,flagC,score}
+  if (typeof buildAllAnomalies === 'function'){
+    buildAllAnomalies().forEach(e=>{
+      const score = Math.abs(e.diffA||0) * (e.flagA?1:0) * 10
+                  + (e.itemsB?e.itemsB.length:0) * 5
+                  + (e.flagC ? (e.fastRate||0) : 0);
+      abnMap.set(e.name, { flagA:!!e.flagA, flagB:!!e.flagB, flagC:!!e.flagC, score });
+    });
+  }
+
+  const enriched = rows.map(r=>{
+    const diff = +(r.通过率 - _OVR).toFixed(2);
+    let tone = ''; let tag='正常';
+    if (diff >= THR_OVERALL){ tone='tone-loose'; tag='偏松'; }
+    else if (diff <= -THR_OVERALL){ tone='tone-strict'; tag='偏严'; }
+    const ab = abnMap.get(r.审核人);
+    return { ...r, _diff:diff, _tone:tone, _tag:tag, _abn:ab||null };
+  });
+
+  const sorters = {
+    'abn-first': (a,b)=>{
+      const sa = a._abn ? a._abn.score : -1;
+      const sb = b._abn ? b._abn.score : -1;
+      if (sb !== sa) return sb - sa;
+      return Math.abs(b._diff) - Math.abs(a._diff);
+    },
+    'diff-desc': (a,b)=> b._diff - a._diff,
+    'diff-asc':  (a,b)=> a._diff - b._diff,
+    'total-desc':(a,b)=> b.总量 - a.总量,
+    'pass-desc': (a,b)=> b.通过率 - a.通过率,
+    'pass-asc':  (a,b)=> a.通过率 - b.通过率,
+  };
+  enriched.sort(sorters[REV_SORT] || sorters['abn-first']);
+
+  // 分页
+  const totalPages = Math.max(1, Math.ceil(enriched.length / REV_PAGE_SIZE));
+  if (REV_PAGE > totalPages) REV_PAGE = totalPages;
+  const start = (REV_PAGE - 1) * REV_PAGE_SIZE;
+  const pageRows = enriched.slice(start, start + REV_PAGE_SIZE);
+
+  const grid = document.getElementById('rev-grid');
+  grid.innerHTML = pageRows.map(r=>{
+    const initial = (r.审核人||'?').slice(0,1);
+    const passW = r.通过率;
+    const blockW = 100 - passW;
+    let diffHtml;
+    if (r._tone === 'tone-loose') diffHtml = `<span class="rev-diff up">+${r._diff.toFixed(2)}pp · ${r._tag}</span>`;
+    else if (r._tone === 'tone-strict') diffHtml = `<span class="rev-diff down">${r._diff.toFixed(2)}pp · ${r._tag}</span>`;
+    else diffHtml = `<span class="rev-diff flat">${r._diff>=0?'+':''}${r._diff.toFixed(2)}pp</span>`;
+    const avTone = r._tone==='tone-loose'?'loose':(r._tone==='tone-strict'?'strict':'');
+
+    // 异常角标
+    let abnHtml = '';
+    if (r._abn){
+      const chips = [];
+      if (r._abn.flagA) chips.push('<span class="rev-abn-chip A">A</span>');
+      if (r._abn.flagB) chips.push('<span class="rev-abn-chip B">B</span>');
+      if (r._abn.flagC) chips.push('<span class="rev-abn-chip C">C</span>');
+      abnHtml = `<span class="rev-abn-chips">${chips.join('')}</span>`;
+    }
+
+    return `
+      <div class="rev-row ${r._tone}">
+        <div class="name-cell">
+          <span class="ab-avatar ${avTone}" style="width:26px;height:26px;font-size:11px">${escapeHtml(initial)}</span>
+          <div style="min-width:0">
+            <div class="nm">${escapeHtml(r.审核人)}${abnHtml}</div>
+            <div class="meta">总量 ${fmt(r.总量)} · 均耗 ${r.平均耗时}s</div>
+          </div>
+        </div>
+        <div class="rev-bar-cell">
+          <div class="rev-bar-track" title="通过 ${r.通过率}% / 拦截 ${r.拦截率}%">
+            <div class="pass" style="width:${passW}%">${passW>=15?'<span>'+r.通过率+'%</span>':''}</div>
+            <div class="block" style="width:${blockW}%">${blockW>=15?'<span>'+r.拦截率+'%</span>':''}</div>
+          </div>
+        </div>
+        <div class="rev-cell-num pass-c">${fmt(r.通过量)}<span class="l">通过</span></div>
+        <div class="rev-cell-num block-c">${fmt(r.拦截量)}<span class="l">拦截</span></div>
+        <div class="rev-diff-cell">${diffHtml}</div>
+      </div>`;
+  }).join('');
+
+  // 分页器
+  renderPager('rev-pager', enriched.length, REV_PAGE, REV_PAGE_SIZE, p=>{
+    REV_PAGE = p; renderReviewerCards();
+  });
+
+  const looseCnt = enriched.filter(x=> x._tone==='tone-loose').length;
+  const strictCnt = enriched.filter(x=> x._tone==='tone-strict').length;
+  const abnCnt = enriched.filter(x=> x._abn).length;
+  const sumEl = document.getElementById('rev-summary');
+  if (sumEl) sumEl.innerHTML = `共 <b>${enriched.length}</b> 位审核人 · <span style="color:#9b6f3a">偏松 ${looseCnt}</span> · <span style="color:#9c4a55">偏严 ${strictCnt}</span> · <span style="color:#b04a4a">⚠ 异常 ${abnCnt}</span> · 整体通过率基线 <b>${OVERALL}%</b>（阈值 ${THR_OVERALL}pp）`;
+}
+
+/* 通用分页器渲染（首页 / 上一页 / 页码 / 下一页 / 末页） */
+function renderPager(containerId, total, page, pageSize, onChange){
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (totalPages <= 1){ el.innerHTML = `<div class="pager-info">共 ${fmt(total)} 条</div>`; return; }
+
+  const btn = (label, p, disabled=false, active=false, extraCls='')=>{
+    const cls = `pager-btn ${active?'active':''} ${disabled?'disabled':''} ${extraCls}`.trim();
+    return `<button class="${cls}" data-page="${p}" ${disabled?'disabled':''}>${label}</button>`;
+  };
+
+  // 页码窗口（最多显示 7 个）
+  const win = 7;
+  let from = Math.max(1, page - 3);
+  let to = Math.min(totalPages, from + win - 1);
+  from = Math.max(1, to - win + 1);
+  let pages = '';
+  if (from > 1){
+    pages += btn('1', 1, false, page===1);
+    if (from > 2) pages += `<span class="pager-ellipsis">…</span>`;
+  }
+  for (let i=from; i<=to; i++){
+    pages += btn(String(i), i, false, page===i);
+  }
+  if (to < totalPages){
+    if (to < totalPages-1) pages += `<span class="pager-ellipsis">…</span>`;
+    pages += btn(String(totalPages), totalPages, false, page===totalPages);
+  }
+
+  el.innerHTML = `
+    <div class="pager-info">共 ${fmt(total)} 条 · 每页 ${pageSize} 条</div>
+    <div class="pager-ctrl">
+      ${btn('‹ 上一页', Math.max(1, page-1), page===1)}
+      ${pages}
+      ${btn('下一页 ›', Math.min(totalPages, page+1), page===totalPages)}
+    </div>`;
+
+  el.querySelectorAll('.pager-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if (b.classList.contains('disabled') || b.classList.contains('active')) return;
+      const p = parseInt(b.dataset.page, 10);
+      if (!isNaN(p)) onChange(p);
+    });
+  });
+}
+
+function rateBar(v){
+  return `<div class="flex items-center gap-2">
+    <div class="bar-track flex-1"><div class="bar-fill" style="width:${v}%"></div></div>
+    <span class="number text-slate-700 font-medium w-14 text-right">${pctFmt(v)}</span>
+  </div>`;
+}
+
+/* ===== 通用排序表 ===== */
+function bindSortableTable(tableId, cols, rows, opt={}){
+  const tab = document.getElementById(tableId);
+  let sortCol = opt.defaultCol || cols[0].key;
+  let sortDir = opt.defaultDir || 'desc';
+  const render = ()=>{
+    const sorted = [...rows].sort((a,b)=>{
+      const av=a[sortCol], bv=b[sortCol];
+      if (typeof av==='number' && typeof bv==='number') return sortDir==='asc' ? av-bv : bv-av;
+      return sortDir==='asc' ? String(av).localeCompare(String(bv),'zh-CN')
+                             : String(bv).localeCompare(String(av),'zh-CN');
+    });
+    let html = '<thead><tr>';
+    cols.forEach(c=>{
+      const cls = (c.sortable?'sortable ':'') + (c.key===sortCol?('sort-'+sortDir):'');
+      const align = c.align==='right' ? 'style="text-align:right"' : '';
+      const arrow = c.sortable ? `<span class="arrow">${c.key===sortCol?(sortDir==='asc'?'▲':'▼'):'↕'}</span>` : '';
+      html += `<th class="${cls}" data-key="${c.key}" ${align}>${c.title}${arrow}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    sorted.forEach(r=>{
+      const rc = opt.rowClass ? opt.rowClass(r) : '';
+      html += `<tr class="${rc}">`;
+      cols.forEach(c=>{
+        const align = c.align==='right' ? 'style="text-align:right"' : '';
+        const v = c.render ? c.render(r[c.key], r) : (r[c.key] ?? '');
+        html += `<td ${align}>${v}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    tab.innerHTML = html;
+    tab.querySelectorAll('th.sortable').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const k = th.dataset.key;
+        if (k===sortCol){ sortDir = sortDir==='asc' ? 'desc' : 'asc'; }
+        else { sortCol = k; sortDir = 'desc'; }
+        render();
+      });
+    });
+  };
+  render();
+}
+
+/* ===== 模块3：维度独立分析 ===== */
+let dimMode = 'cat'; // cat | sub
+function buildDimRows(field){
+  const map = {};
+  DATA.forEach(r=>{
+    const k = r[field];
+    if (!map[k]) map[k] = { 维度:k, 总量:0, 通过量:0, 拦截量:0 };
+    map[k].总量++;
+    if (r.拦截理由===PASS_TAG) map[k].通过量++;
+    else map[k].拦截量++;
+  });
+  return Object.values(map).map(o=>({
+    维度:o.维度, 总量:o.总量, 通过量:o.通过量, 拦截量:o.拦截量,
+    通过率: +(o.通过量/o.总量*100).toFixed(2),
+    拦截率: +(o.拦截量/o.总量*100).toFixed(2),
+    通过率差值pp: +(o.通过量/o.总量*100 - OVERALL).toFixed(2),
+  })).sort((a,b)=> b.总量 - a.总量);
+}
+/* 渲染单个维度的水平条形图 */
+function renderDimHBar(elId, field, color){
+  const el = disposeChart(elId);
+  if (!el) return;
+  const rows = buildDimRows(field).slice(0, 12);
+  const sorted = [...rows].sort((a,b)=> b.通过率 - a.通过率);
+  echarts.init(el).setOption({
+    tooltip:{
+      trigger:'axis', axisPointer:{ type:'shadow' },
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12},
+      formatter: p => {
+        const x = sorted[p[0].dataIndex];
+        return `<b>${escapeHtml(x.维度)}</b><br/>总量：${fmt(x.总量)}<br/>通过率：${x.通过率}%<br/>拦截率：${x.拦截率}%`;
+      }
+    },
+    grid:{ left:8, right:50, top:10, bottom:30, containLabel:true },
+    xAxis:{
+      type:'value', max:100,
+      splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11, formatter:'{value}%' },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    yAxis:{
+      type:'category', data: sorted.map(x=>x.维度).reverse(),
+      axisLine:{ show:false }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11.5,
+        formatter: v => v.length>12 ? v.slice(0,12)+'…' : v }
+    },
+    series:[{
+      type:'bar',
+      data: sorted.map(x=>x.通过率).reverse(),
+      barMaxWidth:14,
+      itemStyle:{ borderRadius:[0,3,3,0],
+        color: (p) => {
+          const v = sorted.slice().reverse()[p.dataIndex].通过率;
+          return v < OVERALL ? C_BLOCK : color;
+        }
+      },
+      label:{ show:true, position:'right', fontSize:11, color: '#7a7a78',
+        formatter: p => p.value + '%' },
+      markLine:{
+        silent:true, symbol:'none',
+        lineStyle:{ color:'#a3a39f', type:'dashed', width:1 },
+        data:[{ xAxis: OVERALL }]
+      }
+    }]
+  });
+}
+
+/* 渲染维度散点图：已下线（用户要求删除）
+function renderDimScatter(){ return; }
+*/
+
+function renderDim(){
+  const field = dimMode==='cat' ? '审核目录' : '分类';
+  const rows = buildDimRows(field);
+  const dimMeta = document.getElementById('dim-meta');
+  if (dimMeta) dimMeta.textContent = `维度：${field} · 共 ${rows.length} 个 · 整体通过率 ${OVERALL}%`;
+
+  // 双图（与 dimMode 无关，固定渲染两个）
+  renderDimHBar('chart-dim-cat', '审核目录', C_PASS);
+  renderDimHBar('chart-dim-sub', '分类', C_PASS);
+
+  // 表格仍然受 dimMode 影响
+  const cols = [
+    { key:'维度', title:field, sortable:true },
+    { key:'总量', title:'总量', sortable:true, align:'right', render:v=>fmt(v) },
+    { key:'通过量', title:'通过量', sortable:true, align:'right', render:v=>`<span class="num-pos">${fmt(v)}</span>` },
+    { key:'拦截量', title:'拦截量', sortable:true, align:'right', render:v=>`<span class="num-neg">${fmt(v)}</span>` },
+    { key:'通过率', title:'通过率', sortable:true, align:'left', render:v=>rateBar(v) },
+    { key:'拦截率', title:'拦截率', sortable:true, align:'right', render:v=>pctFmt(v) },
+    { key:'通过率差值pp', title:'vs 整体(pp)', sortable:true, align:'right',
+      render:v=>{ const sign=v>0?'+':''; const cls=v>0?'num-pos':(v<0?'num-neg':''); return `<span class="${cls}">${sign}${v.toFixed(2)}</span>`; } },
+  ];
+  bindSortableTable('dim-table', cols, rows, { defaultCol:'总量', defaultDir:'desc' });
+}
+function initDimTabs(){
+  const bar = document.getElementById('dim-tabs');
+  bar.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      bar.querySelectorAll('.tab-btn').forEach(x=> x.classList.remove('active'));
+      b.classList.add('active');
+      dimMode = b.dataset.tab;
+      renderDim();
+    });
+  });
+}
+
+/* ===== 模块4：异常人员归因卡片（A/B/C 三类） ===== */
+const TAG_PALETTE = ['#b45561','#c89a5a','#5a8aa8','#7e7cb3','#0d9488','#a37f5e','#9c4a55','#3e6f8a'];
+
+// 全员整体拦截率（基于当前 DATA）
+function buildGlobalBlockRate(){
+  const t = DATA.length;
+  if (!t) return 0;
+  const b = DATA.filter(r=> r.拦截理由 !== PASS_TAG).length;
+  return +(b/t*100).toFixed(2);
+}
+// 全员各分类下"该分类内某标签的拦截率"基线 { 分类: { 标签: rate% } }
+// rate = 该分类中"标签==X 且 被拦截"的次数 / 该分类总条数 * 100
+function buildSubTagBaseline(){
+  const out = {};
+  DATA.forEach(r=>{
+    const sub = r.分类;
+    if (!out[sub]) out[sub] = { total:0, tagCnt:{} };
+    out[sub].total++;
+    if (r.拦截理由 !== PASS_TAG){
+      out[sub].tagCnt[r.拦截理由] = (out[sub].tagCnt[r.拦截理由]||0) + 1;
+    }
+  });
+  const baseline = {};
+  Object.entries(out).forEach(([sub, d])=>{
+    baseline[sub] = {};
+    Object.entries(d.tagCnt).forEach(([tag, c])=>{
+      baseline[sub][tag] = +(c/d.total*100).toFixed(2);
+    });
+    baseline[sub]._total = d.total;
+  });
+  return baseline;
+}
+
+function buildAllAnomalies(){
+  const globalBlockRate = buildGlobalBlockRate();
+  const subTagBase = buildSubTagBaseline();
+
+  const result = [];
+  VALID_PEOPLE.forEach(name=>{
+    const ps = PERSON_STATS[name];
+    if (ps.total < AB_MIN_SAMPLE) return;
+
+    const passRate = +(ps.pass/ps.total*100).toFixed(2);
+    const blockRate = +(ps.block/ps.total*100).toFixed(2);
+
+    // A：个人整体拦截率 vs 全员拦截率
+    const diffA = +(blockRate - globalBlockRate).toFixed(2);
+    const flagA = Math.abs(diffA) >= THR_OVERALL;
+
+    // B：在每个 (分类, 标签) 上 - 个人在该分类的"标签拦截率" vs 该分类的标签拦截率基线
+    // 个人 个人(分类, 标签) 拦截次数 / 个人(分类) 总条数 * 100
+    const personSub = {};
+    DATA.forEach(r=>{
+      if (r.审核人 !== name) return;
+      const sub = r.分类;
+      if (!personSub[sub]) personSub[sub] = { total:0, blocked:0, tagCnt:{} };
+      personSub[sub].total++;
+      if (r.拦截理由 !== PASS_TAG){
+        personSub[sub].blocked++;
+        personSub[sub].tagCnt[r.拦截理由] = (personSub[sub].tagCnt[r.拦截理由]||0) + 1;
+      }
+    });
+    const itemsB = [];
+    Object.entries(personSub).forEach(([sub, d])=>{
+      if (d.total < AB_MIN_SAMPLE) return;
+      const base = subTagBase[sub] || {};
+      const personBlockRate = +(d.blocked/d.total*100).toFixed(2);
+      const baseBlockRate = base._total ? +((subTagBase[sub] ? Object.entries(subTagBase[sub]).filter(([k])=>k!=='_total').reduce((s,[_,v])=> s + v, 0) : 0).toFixed(2)) : 0;
+      // 该分类的整体全员拦截率（备用）
+      const globalSubBlock = (()=>{
+        let t=0,b=0; DATA.forEach(r=>{ if (r.分类===sub){ t++; if (r.拦截理由!==PASS_TAG) b++; } });
+        return t? +(b/t*100).toFixed(2) : 0;
+      })();
+      // 找异常标签
+      const tagAnomalies = [];
+      Object.entries(d.tagCnt).forEach(([tag, cnt])=>{
+        const personTagRate = +(cnt/d.total*100).toFixed(2);
+        const baseTagRate = base[tag] || 0;
+        const diff = +(personTagRate - baseTagRate).toFixed(2);
+        if (Math.abs(diff) >= THR_TAG && cnt >= 3){
+          tagAnomalies.push({ tag, count:cnt, personRate:personTagRate, baseRate:baseTagRate, diff });
+        }
+      });
+      // 完整标签分布（用于显示 stacked bar，前5+其他）
+      // pct 口径统一为"占该分类总量"，与下方 ↳ 异常说明的 personRate 完全一致
+      const allTags = Object.entries(d.tagCnt).sort((a,b)=> b[1]-a[1]);
+      const top5 = allTags.slice(0,5);
+      const otherSum = allTags.slice(5).reduce((s,[_,c])=> s+c, 0);
+      const tagDist = top5.map(([t,c])=>({
+        tag:t, count:c,
+        pct:+(c/d.total*100).toFixed(1),
+        baseRate: base[t] || 0,
+      }));
+      if (otherSum>0) tagDist.push({
+        tag:'其他', count:otherSum,
+        pct:+(otherSum/d.total*100).toFixed(1),
+        baseRate: 0,
+      });
+
+      if (tagAnomalies.length){
+        // 按差值绝对值排序
+        tagAnomalies.sort((a,b)=> Math.abs(b.diff) - Math.abs(a.diff));
+        itemsB.push({
+          sub, total:d.total, blocked:d.blocked,
+          personBlockRate, globalSubBlock,
+          subBlockDiff: +(personBlockRate - globalSubBlock).toFixed(2),
+          tagAnomalies,
+          tagDist,
+        });
+      }
+    });
+    // 按"标签异常严重度"排序：差值绝对值最大值 × 异常标签数
+    itemsB.sort((a,b)=>{
+      const sa = Math.max(...a.tagAnomalies.map(t=> Math.abs(t.diff)));
+      const sb = Math.max(...b.tagAnomalies.map(t=> Math.abs(t.diff)));
+      return sb - sa;
+    });
+    const flagB = itemsB.length > 0;
+
+    // C：快审异常 - 个人快审占比 ≥ THR_FAST%
+    const fastN = DATA.filter(r=> r.审核人===name && r.审核耗时 < FAST_THRESHOLD).length;
+    const fastRate = ps.total ? +(fastN/ps.total*100).toFixed(2) : 0;
+    const flagC = fastRate >= THR_FAST;
+
+    if (flagA || flagB || flagC){
+      result.push({
+        name, ps, passRate, blockRate, globalBlockRate,
+        diffA, flagA, itemsB, flagB,
+        fastN, fastRate, flagC,
+      });
+    }
+  });
+
+  // 排序：A→B→C 严重度
+  result.sort((a,b)=>{
+    const score = e =>
+      Math.abs(e.diffA) * (e.flagA?1:0) * 10 +
+      e.itemsB.reduce((s, it)=> s + it.tagAnomalies.reduce((ss,t)=> ss + Math.abs(t.diff), 0), 0) +
+      (e.flagC ? e.fastRate : 0);
+    return score(b) - score(a);
+  });
+  return result;
+}
+
+function renderTagStack(tagDist, palette=TAG_PALETTE){
+  if (!tagDist || !tagDist.length) return '';
+  // bar：纯色段，不叠任何文字；hover 显示 tooltip
+  const segs = tagDist.map((t,i)=>{
+    const color = palette[i % palette.length];
+    const baseStr = (t.baseRate != null && t.tag !== '其他')
+      ? `\n占该分类: ${t.pct}%\n全员基线: ${t.baseRate}%\n差值: ${(t.pct - t.baseRate >= 0 ? '+':'')}${(t.pct - t.baseRate).toFixed(1)}pp`
+      : `\n占该分类: ${t.pct}%`;
+    return `<div class="tag-stack-seg" style="width:${t.pct}%; background:${color}" title="${escapeHtml(t.tag)}: ${t.count} 条${baseStr}"></div>`;
+  }).join('');
+  // legend：每个标签显示 占该分类% 和 vs 全员差值（小字）
+  const legend = tagDist.map((t,i)=>{
+    const color = palette[i % palette.length];
+    let cmpHtml = '';
+    if (t.tag !== '其他' && t.baseRate != null){
+      const diff = +(t.pct - t.baseRate).toFixed(1);
+      if (Math.abs(diff) >= 0.1){
+        const cls = diff > 0 ? 'num-neg' : 'num-pos';
+        const sign = diff > 0 ? '+' : '';
+        cmpHtml = `<span class="tag-leg-cmp ${cls}">${sign}${diff.toFixed(1)}pp</span>`;
+      }
+    }
+    return `<span class="tag-leg"><span class="dot" style="background:${color}"></span>${escapeHtml(t.tag)} <b style="color:var(--ink-2)">${t.pct}%</b>${cmpHtml}</span>`;
+  }).join('');
+  return `<div class="tag-stack">${segs}</div><div class="tag-stack-legend">${legend}</div>`;
+}
+
+let AB_EXPANDED = new Set();   // 当前展开的人名
+
+/* 渲染 ABC 三类异常统计卡 */
+function renderAbcCards(arr){
+  const aArr = arr.filter(x=> x.flagA);
+  const bArr = arr.filter(x=> x.flagB);
+  const cArr = arr.filter(x=> x.flagC);
+
+  // A 显示：A 异常人数，副标题 = 平均偏差 pp
+  const aAvg = aArr.length ? +(aArr.reduce((s,x)=> s + Math.abs(x.diffA), 0) / aArr.length).toFixed(1) : 0;
+  const A_num = document.getElementById('abc-A-num');
+  const A_sub = document.getElementById('abc-A-sub');
+  if (A_num) A_num.textContent = aArr.length + ' 人';
+  if (A_sub) A_sub.innerHTML = aArr.length ? `平均偏离整体 <b>${aAvg}pp</b> · 阈值 ${THR_OVERALL}pp` : '当前阈值下无人命中';
+
+  const B_num = document.getElementById('abc-B-num');
+  const B_sub = document.getElementById('abc-B-sub');
+  const totalBItems = bArr.reduce((s,x)=> s + x.itemsB.length, 0);
+  if (B_num) B_num.textContent = bArr.length + ' 人';
+  if (B_sub) B_sub.innerHTML = bArr.length ? `共 <b>${totalBItems}</b> 个分类×标签命中 · 阈值 ${THR_TAG}pp` : '当前阈值下无人命中';
+
+  const C_num = document.getElementById('abc-C-num');
+  const C_sub = document.getElementById('abc-C-sub');
+  const cMax = cArr.length ? Math.max(...cArr.map(x=>x.fastRate)) : 0;
+  if (C_num) C_num.textContent = cArr.length + ' 人';
+  if (C_sub) C_sub.innerHTML = cArr.length ? `最高快审占比 <b>${cMax}%</b> · 阈值 ${THR_FAST}%` : '当前阈值下无人命中';
+
+  // 迷你柱图：取 top 8 异常人员的相应指标
+  const drawBar = (id, vals)=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    const max = Math.max(...vals, 1);
+    el.innerHTML = vals.slice(0, 12).map(v=>{
+      const h = max ? Math.max(2, (v/max)*100) : 0;
+      return `<div class="abc-bar-seg"><div class="abc-bar-seg-fill" style="height:${h}%"></div></div>`;
+    }).join('');
+  };
+  drawBar('abc-A-bar', aArr.map(x=> Math.abs(x.diffA)));
+  drawBar('abc-B-bar', bArr.map(x=> x.itemsB.length));
+  drawBar('abc-C-bar', cArr.map(x=> x.fastRate));
+}
+
+/* 异常人员详情 HTML（在 ABC 模态框行展开时复用） */
+function buildAnomalyDetailHtml(e){
+  let bHtml = '';
+  if (e.itemsB && e.itemsB.length){
+    const topItems = e.itemsB.slice(0, 3);
+    bHtml = `
+      <div class="ab-cause-title">🎯 异常拦截分类 Top${topItems.length}（共 ${e.itemsB.length}）</div>
+      <div class="ab-cause-list">
+        ${topItems.map(it=>{
+          const blk = it.subBlockDiff;
+          const blkSign = blk>0?'+':'';
+          const blkCls = blk>0?'num-neg':'num-pos';
+          const tagAnomLines = it.tagAnomalies.slice(0,2).map(tg=>{
+            const sign = tg.diff>0?'+':'';
+            const cls = tg.diff>0?'num-neg':'num-pos';
+            return `<div style="font-size:11.5px;color:var(--ink-3);margin-top:4px">↳ <b>${escapeHtml(tg.tag)}</b> 占该分类 ${tg.personRate}% <span class="${cls}">(${sign}${tg.diff.toFixed(1)}pp vs 全员 ${tg.baseRate}%)</span></div>`;
+          }).join('');
+          return `
+            <div class="ab-cause">
+              <div class="ab-cause-head">
+                <div>
+                  <span class="ab-cause-name">${escapeHtml(it.sub)}</span>
+                  <span class="ab-cause-sample">${fmt(it.total)}条 · 拦${fmt(it.blocked)}</span>
+                </div>
+                <div class="ab-cause-rate">拦截率 ${it.personBlockRate}%<span class="vs">vs ${it.globalSubBlock}%</span><span class="${blkCls}">${blkSign}${blk.toFixed(1)}pp</span></div>
+              </div>
+              ${renderTagStack(it.tagDist)}
+              ${tagAnomLines}
+            </div>`;
+        }).join('')}
+      </div>`;
+  }
+  let cHtml = '';
+  if (e.flagC){
+    cHtml = `
+      <div class="ab-fast-card" style="margin-top:${bHtml?'12px':'0'}">
+        <div class="ab-fast-line">
+          <span class="ab-fast-key">⚡ 快审占比异常</span>
+          <span class="ab-fast-val">${e.fastRate}%</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--ink-4);margin-top:4px">
+          ${fmt(e.fastN)} / ${fmt(e.ps.total)} 条耗时 &lt; ${FAST_THRESHOLD}s · 阈值 ${THR_FAST}% · 详见模块5
+        </div>
+      </div>`;
+  }
+  if (!bHtml && !cHtml){
+    return `<div class="ab-empty-line">— 仅命中整体异常，无具体分类/标签/快审异常项</div>`;
+  }
+  return bHtml + cHtml;
+}
+
+/* 异常人员汇总：只渲染 ABC 三张统计卡，明细全部进 ABC 模态框 */
+function renderAbCards(){
+  const arr = buildAllAnomalies();
+  renderAbcCards(arr);
+}
+
+function initAbToolbar(){
+  // ABC 三张卡可点击 → 弹出该类详情
+  document.querySelectorAll('.abc-card.clickable').forEach(card=>{
+    card.addEventListener('click', ()=> openAbcModal(card.dataset.abc));
+    card.addEventListener('keydown', e=>{
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openAbcModal(card.dataset.abc); }
+    });
+  });
+
+  // 模态框关闭
+  const modal = document.getElementById('abc-modal');
+  if (modal){
+    modal.querySelectorAll('[data-close]').forEach(x=>{
+      x.addEventListener('click', ()=> modal.classList.add('hidden'));
+    });
+    document.addEventListener('keydown', e=>{
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')){
+        modal.classList.add('hidden');
+      }
+    });
+  }
+}
+
+/* 打开 ABC 详情模态框 */
+function openAbcModal(type){
+  const modal = document.getElementById('abc-modal');
+  const titleEl = document.getElementById('abc-modal-title');
+  const bodyEl = document.getElementById('abc-modal-body');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const arr = buildAllAnomalies();
+  const titleMap = {
+    A: { tag:'A', name:'整体异常', desc:'个人整体拦截率 vs 全员', thrLabel:`阈值 ${THR_OVERALL}pp` },
+    B: { tag:'B', name:'标签异常', desc:'分类×标签 拦截率偏差',  thrLabel:`阈值 ${THR_TAG}pp` },
+    C: { tag:'C', name:'快审异常', desc:`耗时 < ${FAST_THRESHOLD}s 占比`, thrLabel:`阈值 ${THR_FAST}%` },
+  };
+  const cfg = titleMap[type] || titleMap.A;
+  titleEl.innerHTML = `<span class="tag-${type}">${cfg.tag}</span>${cfg.name} 详情`;
+
+  let list = [];
+  if (type === 'A'){
+    list = arr.filter(x=> x.flagA)
+              .sort((a,b)=> Math.abs(b.diffA) - Math.abs(a.diffA));
+  } else if (type === 'B'){
+    list = arr.filter(x=> x.flagB)
+              .sort((a,b)=> b.itemsB.length - a.itemsB.length);
+  } else {
+    list = arr.filter(x=> x.flagC)
+              .sort((a,b)=> b.fastRate - a.fastRate);
+  }
+
+  const metaHtml = `
+    <div class="abc-modal-meta">
+      <b>${cfg.name}</b> · ${cfg.desc} · ${cfg.thrLabel} · 命中 <b style="color:var(--block)">${list.length}</b> 人
+    </div>`;
+
+  if (!list.length){
+    bodyEl.innerHTML = metaHtml + `<div class="abc-modal-empty">当前阈值下无人命中</div>`;
+    modal.classList.remove('hidden');
+    return;
+  }
+
+  const items = list.map((e, i)=>{
+    let valHtml = '', subHtml = '';
+    if (type === 'A'){
+      const sign = e.diffA>0?'+':'';
+      const direction = e.diffA>0 ? '拦得多' : '拦得少';
+      valHtml = `${sign}${e.diffA.toFixed(2)}pp`;
+      subHtml = `总 ${fmt(e.ps.total)} 条 · 拦截率 ${e.blockRate}% (vs 全员 ${e.globalBlockRate}%) · <b>${direction}</b>`;
+    } else if (type === 'B'){
+      const top3 = e.itemsB.slice(0,3).map(it=> `<b>${escapeHtml(it.sub)}</b>`).join('、');
+      valHtml = `${e.itemsB.length} 个`;
+      subHtml = `命中分类：${top3}${e.itemsB.length>3?` 等 ${e.itemsB.length} 个`:''}`;
+    } else {
+      valHtml = `${e.fastRate}%`;
+      subHtml = `${fmt(e.fastN)} / ${fmt(e.ps.total)} 条耗时 &lt; ${FAST_THRESHOLD}s`;
+    }
+    const detailHtml = buildAnomalyDetailHtml(e);
+    return `
+      <div class="abc-modal-item ${type}" data-name="${escapeHtml(e.name)}">
+        <div class="abc-item-head">
+          <span class="chev">▶</span>
+          <span class="rank">${i+1}</span>
+          <div>
+            <div class="nm">${escapeHtml(e.name)}</div>
+            <div class="sub">${subHtml}</div>
+          </div>
+          <span class="v">${valHtml}</span>
+        </div>
+        <div class="abc-item-body">${detailHtml}</div>
+      </div>`;
+  }).join('');
+
+  bodyEl.innerHTML = metaHtml + `<div class="abc-modal-list">${items}</div>`;
+
+  // 绑定行点击展开/收起
+  bodyEl.querySelectorAll('.abc-modal-item').forEach(row=>{
+    const head = row.querySelector('.abc-item-head');
+    head.addEventListener('click', ()=>{
+      row.classList.toggle('expanded');
+    });
+  });
+
+  modal.classList.remove('hidden');
+}
+
+/* ===== 标签异常分析报告 =====
+   维度：拦截标签（=拦截理由，排除 PASS_TAG）
+   每个标签：总命中数 / 占比 / 触发人数 / 涉及分类数
+   点击行 → 模态框展示：人员 TOP / 分类 TOP / 异常人员标记
+*/
+let TAG_REPORT_TOP_N = 10;
+function buildTagReport(){
+  // 按标签聚合：人员/分类/总次数
+  const tagMap = new Map(); // tag -> {total, ppl:Map, subs:Map}
+  let totalBlocked = 0;
+  DATA.forEach(r=>{
+    if (r.拦截理由 === PASS_TAG) return;
+    const tag = r.拦截理由;
+    if (!tagMap.has(tag)) tagMap.set(tag, { total:0, ppl:new Map(), subs:new Map() });
+    const t = tagMap.get(tag);
+    t.total++;
+    totalBlocked++;
+    t.ppl.set(r.审核人, (t.ppl.get(r.审核人)||0) + 1);
+    t.subs.set(r.分类, (t.subs.get(r.分类)||0) + 1);
+  });
+
+  // 异常人员名单（用于详情里标记）
+  const abnormalSet = new Set();
+  if (typeof buildAllAnomalies === 'function'){
+    buildAllAnomalies().forEach(e=> abnormalSet.add(e.name));
+  }
+
+  // 按总次数降序
+  const arr = Array.from(tagMap.entries()).map(([tag, t])=>({
+    tag, total: t.total,
+    pct: totalBlocked ? +(t.total/totalBlocked*100).toFixed(2) : 0,
+    pplCount: t.ppl.size,
+    subCount: t.subs.size,
+    ppl: Array.from(t.ppl.entries()).sort((a,b)=> b[1]-a[1]),
+    subs: Array.from(t.subs.entries()).sort((a,b)=> b[1]-a[1]),
+  })).sort((a,b)=> b.total - a.total);
+
+  return { arr, totalBlocked, abnormalSet };
+}
+
+function renderTagReport(){
+  const listEl = document.getElementById('tag-report-list');
+  const emptyEl = document.getElementById('tag-report-empty');
+  if (!listEl) return;
+  const { arr, totalBlocked } = buildTagReport();
+
+  if (!arr.length || !totalBlocked){
+    listEl.innerHTML = '';
+    emptyEl && emptyEl.classList.remove('hidden');
+    return;
+  }
+  emptyEl && emptyEl.classList.add('hidden');
+
+  const maxPct = arr[0]?.pct || 1;
+  const sliced = TAG_REPORT_TOP_N > 0 ? arr.slice(0, TAG_REPORT_TOP_N) : arr;
+
+  listEl.innerHTML = sliced.map((t, i)=>{
+    const rank = i + 1;
+    const rankCls = rank<=3 ? `top-${rank}` : '';
+    const fillW = Math.max(2, (t.pct / maxPct) * 100);
+    return `
+      <div class="tag-report-row ${rankCls}" data-tag="${escapeHtml(t.tag)}">
+        <span class="rank-no">${rank}</span>
+        <div class="nm-cell">
+          <div class="nm" title="${escapeHtml(t.tag)}">${escapeHtml(t.tag)}</div>
+          <div class="meta">${fmt(t.total)} 次 · 占全部拦截 ${t.pct}%</div>
+        </div>
+        <div class="bar-cell">
+          <div class="tag-report-bar"><div class="fill" style="width:${fillW}%"></div></div>
+          <span class="pct">${t.pct}%</span>
+        </div>
+        <div class="stat-cell">
+          <span class="v">${fmt(t.pplCount)} 人</span>
+          <span class="l">触发人数</span>
+        </div>
+        <div class="stat-cell">
+          <span class="v">${fmt(t.subCount)} 类</span>
+          <span class="l">涉及分类</span>
+        </div>
+        <span class="chev">›</span>
+      </div>`;
+  }).join('');
+
+  // 点击行
+  listEl.querySelectorAll('.tag-report-row').forEach(row=>{
+    row.addEventListener('click', ()=> openTagModal(row.dataset.tag));
+  });
+}
+
+function initTagReport(){
+  const sel = document.getElementById('tag-report-topn');
+  if (sel && !sel.dataset.bound){
+    sel.dataset.bound = '1';
+    sel.value = String(TAG_REPORT_TOP_N);
+    sel.addEventListener('change', ()=>{
+      TAG_REPORT_TOP_N = parseInt(sel.value, 10);
+      renderTagReport();
+    });
+  }
+  const modal = document.getElementById('tag-modal');
+  if (modal && !modal.dataset.bound){
+    modal.dataset.bound = '1';
+    modal.querySelectorAll('[data-close]').forEach(x=>{
+      x.addEventListener('click', ()=> modal.classList.add('hidden'));
+    });
+    document.addEventListener('keydown', e=>{
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')){
+        modal.classList.add('hidden');
+      }
+    });
+  }
+}
+
+/* 打开标签详情模态框 */
+function openTagModal(tagName){
+  const modal = document.getElementById('tag-modal');
+  const titleEl = document.getElementById('tag-modal-title');
+  const bodyEl = document.getElementById('tag-modal-body');
+  if (!modal || !titleEl || !bodyEl) return;
+
+  const { arr, totalBlocked, abnormalSet } = buildTagReport();
+  const t = arr.find(x=> x.tag === tagName);
+  if (!t){
+    bodyEl.innerHTML = `<div class="abc-modal-empty">未找到「${escapeHtml(tagName)}」相关数据</div>`;
+    modal.classList.remove('hidden');
+    return;
+  }
+
+  titleEl.innerHTML = `🏷️ <span style="color:var(--block)">${escapeHtml(tagName)}</span> · 标签详情`;
+
+  // —— 全员该标签每分类基线（用于 vs 全员 比对）
+  // 该分类内"标签==tag 且拦截"的次数 / 该分类总条数
+  const subTotalMap = new Map(); // sub -> total
+  const subTagMap = new Map();   // sub -> tagCount
+  DATA.forEach(r=>{
+    subTotalMap.set(r.分类, (subTotalMap.get(r.分类)||0) + 1);
+    if (r.拦截理由 === tagName){
+      subTagMap.set(r.分类, (subTagMap.get(r.分类)||0) + 1);
+    }
+  });
+
+  // —— 个人该标签 vs 个人总条数（个人触发该标签占自己审核量的比例）
+  const personTotalMap = new Map();
+  DATA.forEach(r=> personTotalMap.set(r.审核人, (personTotalMap.get(r.审核人)||0) + 1));
+
+  // ABC 异常人员 set（已加载）
+  // 全员该标签拦截率（基线，用于人员对比）
+  const globalTagRate = +(t.total / DATA.length * 100).toFixed(2);
+
+  // 顶部摘要
+  const summaryHtml = `
+    <div class="tag-modal-summary">
+      <div class="it block"><div class="v">${fmt(t.total)}</div><div class="l">总命中条数</div></div>
+      <div class="it block"><div class="v">${t.pct}%</div><div class="l">占全部拦截</div></div>
+      <div class="it"><div class="v">${fmt(t.pplCount)}</div><div class="l">触发审核人数</div></div>
+      <div class="it"><div class="v">${fmt(t.subCount)}</div><div class="l">涉及分类数</div></div>
+    </div>`;
+
+  // —— Top 审核人（最多 8 人）
+  const topPpl = t.ppl.slice(0, 8);
+  const maxPplCnt = topPpl[0]?.[1] || 1;
+  const pplHtml = topPpl.map(([name, cnt], i)=>{
+    const personTotal = personTotalMap.get(name) || 0;
+    const personRate = personTotal ? +(cnt/personTotal*100).toFixed(2) : 0;
+    const diff = +(personRate - globalTagRate).toFixed(2);
+    const sign = diff>0?'+':'';
+    const cls = Math.abs(diff) >= 5 ? '' : 'flat';
+    const isAbn = abnormalSet.has(name);
+    const fillW = Math.max(3, (cnt/maxPplCnt) * 100);
+    return `
+      <div class="tag-detail-row">
+        <span class="rk">${i+1}</span>
+        <div>
+          <div class="nm">${escapeHtml(name)}${isAbn ? ' <span class="rev-abn-chip A" title="ABC异常人员" style="margin-left:4px;">!</span>':''}</div>
+          <div class="sub">触发 ${fmt(cnt)} 次 · 占其审核 ${personRate}% · 总量 ${fmt(personTotal)}</div>
+        </div>
+        <div class="mini-bar"><div class="fill" style="width:${fillW}%"></div></div>
+        <div class="v ${cls}">${fmt(cnt)} 次<span class="vs">${sign}${diff.toFixed(1)}pp vs 全员 ${globalTagRate}%</span></div>
+      </div>`;
+  }).join('');
+
+  // —— Top 分类（最多 8 个）
+  const topSubs = t.subs.slice(0, 8);
+  const maxSubCnt = topSubs[0]?.[1] || 1;
+  const subsHtml = topSubs.map(([sub, cnt], i)=>{
+    const subTotal = subTotalMap.get(sub) || 0;
+    const subRate = subTotal ? +(cnt/subTotal*100).toFixed(2) : 0;
+    const diff = +(subRate - globalTagRate).toFixed(2);
+    const sign = diff>0?'+':'';
+    const cls = Math.abs(diff) >= 5 ? '' : 'flat';
+    const fillW = Math.max(3, (cnt/maxSubCnt) * 100);
+    return `
+      <div class="tag-detail-row">
+        <span class="rk">${i+1}</span>
+        <div>
+          <div class="nm">${escapeHtml(sub)}</div>
+          <div class="sub">出现 ${fmt(cnt)} 次 · 占该分类 ${subRate}% · 该分类总量 ${fmt(subTotal)}</div>
+        </div>
+        <div class="mini-bar"><div class="fill" style="width:${fillW}%"></div></div>
+        <div class="v ${cls}">${fmt(cnt)} 次<span class="vs">${sign}${diff.toFixed(1)}pp vs 全员 ${globalTagRate}%</span></div>
+      </div>`;
+  }).join('');
+
+  bodyEl.innerHTML = summaryHtml + `
+    <div class="tag-modal-section">
+      <div class="sec-title">👤 触发该标签 Top ${topPpl.length} 审核人 <span class="pill">共 ${t.pplCount} 人</span></div>
+      <div class="tag-detail-list">${pplHtml || '<div class="abc-modal-empty">暂无</div>'}</div>
+    </div>
+    <div class="tag-modal-section">
+      <div class="sec-title">📂 出现该标签 Top ${topSubs.length} 分类 <span class="pill">共 ${t.subCount} 类</span></div>
+      <div class="tag-detail-list">${subsHtml || '<div class="abc-modal-empty">暂无</div>'}</div>
+    </div>`;
+  modal.classList.remove('hidden');
+}
+
+/* ===== 模块5：耗时分析 — 人员卡片墙 + 详情 (始终基于全量) ===== */
+let FAST_THRESHOLD = 10;
+let CURRENT_PPL = null;
+
+/* 快审占比分布图（10% 一桶） */
+function renderFastHistChart(arr){
+  const el = disposeChart('chart-fast-hist');
+  if (!el) return;
+  const buckets = Array(10).fill(0);
+  arr.forEach(p=>{
+    const idx = Math.min(9, Math.floor(p.ratio/10));
+    buckets[idx]++;
+  });
+  const labels = buckets.map((_,i)=> `${i*10}-${i*10+10}%`);
+  const thrIdx = Math.min(9, Math.floor(THR_FAST/10));
+  echarts.init(el).setOption({
+    tooltip:{
+      trigger:'axis', axisPointer:{ type:'shadow' },
+      backgroundColor:'rgba(26,26,26,.92)', borderWidth:0, textStyle:{color:'#fff', fontSize:12},
+      formatter: p => `${p[0].name}<br/>人数：${p[0].value}`
+    },
+    grid:{ left:30, right:24, top:14, bottom:30, containLabel:true },
+    xAxis:{
+      type:'category', data:labels,
+      axisLine:{ show:false }, axisTick:{ show:false },
+      axisLabel:{ ...ECHART_TEXT, fontSize:10.5, interval:0 }
+    },
+    yAxis:{
+      type:'value', minInterval:1,
+      splitLine:{ lineStyle:{ color:'#f0efed' } },
+      axisLabel:{ ...ECHART_TEXT, fontSize:11 },
+      axisLine:{ show:false }, axisTick:{ show:false }
+    },
+    series:[{
+      type:'bar', data: buckets, barMaxWidth:36,
+      itemStyle:{ borderRadius:[3,3,0,0],
+        color: p => p.dataIndex >= thrIdx ? C_BLOCK : '#9ab3a8' },
+      label:{ show:true, position:'top', fontSize:10.5, color:'#7a7a78',
+        formatter: p => p.value || '' },
+      markLine:{
+        silent:true, symbol:'none',
+        lineStyle:{ color:'#a3a39f', type:'dashed', width:1 },
+        label:{ formatter:`阈值 ${THR_FAST}%`, color:'#7a7a78', fontSize:10.5, position:'middle' },
+        data:[{ xAxis: thrIdx - 0.5 }]
+      }
+    }]
+  });
+}
+
+function renderPplGrid(){
+  const t = FAST_THRESHOLD;
+  const map = {};
+  DATA.forEach(r=>{
+    if (!map[r.审核人]) map[r.审核人] = { name:r.审核人, total:0, fast:0, fastDur:0 };
+    map[r.审核人].total++;
+    if (r.审核耗时 < t){ map[r.审核人].fast++; map[r.审核人].fastDur += r.审核耗时; }
+  });
+  const arr = Object.values(map).map(o=>({
+    name:o.name, total:o.total, fast:o.fast,
+    avgDur: o.fast ? +(o.fastDur/o.fast).toFixed(2) : 0,
+    ratio: o.total ? +(o.fast/o.total*100).toFixed(2) : 0,
+  })).sort((a,b)=> b.ratio - a.ratio);
+
+  // 快审占比分布图（10% 一桶）
+  renderFastHistChart(arr);
+
+  const grid = document.getElementById('ppl-grid');
+  grid.innerHTML = arr.map(p=>{
+    const high = p.ratio >= HIGH_FAST_RATIO;
+    const initial = p.name.slice(0,1);
+    return `
+      <div class="ppl-card ${high?'high':''}" data-name="${escapeHtml(p.name)}">
+        ${high?'<span class="ppl-tag">⚠️ 高频</span>':''}
+        <div class="flex items-center gap-2">
+          <div class="ab-avatar" style="background:linear-gradient(135deg,#818cf8,#6366f1); width:28px; height:28px; font-size:12px">${escapeHtml(initial)}</div>
+          <div class="min-w-0 flex-1">
+            <div class="ppl-name truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+            <div class="ppl-meta">总 ${fmt(p.total)} · 快审 ${fmt(p.fast)}</div>
+          </div>
+        </div>
+        <div class="ppl-rate">
+          <span class="ppl-rate-num ${high?'high':''}">${p.ratio}</span>
+          <span class="ppl-rate-unit">% 快审占比</span>
+        </div>
+        <div class="bar-track" style="margin-top:6px"><div class="bar-fill ${high?'block':'warn'}" style="width:${Math.min(p.ratio,100)}%"></div></div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('fast-meta').textContent =
+    `共 ${arr.length} 人 · 阈值 <${t}s · 高频警示 ${arr.filter(x=> x.ratio>=HIGH_FAST_RATIO).length} 人`;
+
+  // 点击事件
+  grid.querySelectorAll('.ppl-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      grid.querySelectorAll('.ppl-card').forEach(c=> c.classList.remove('active'));
+      card.classList.add('active');
+      CURRENT_PPL = card.dataset.name;
+      renderPplDetail(CURRENT_PPL);
+    });
+  });
+
+  // 优先保留上次选中
+  let target = (CURRENT_PPL && arr.find(x=> x.name===CURRENT_PPL)) ? CURRENT_PPL : (arr[0] && arr[0].name);
+  if (target){
+    CURRENT_PPL = target;
+    const sel = grid.querySelector(`.ppl-card[data-name="${escapeHtml(target).replace(/"/g,'\\"')}"]`);
+    sel && sel.classList.add('active');
+    renderPplDetail(target);
+  } else {
+    CURRENT_PPL = null;
+    document.getElementById('detail-empty').classList.remove('hidden');
+    document.getElementById('detail-content').classList.add('hidden');
+  }
+}
+
+function renderPplDetail(name){
+  const t = FAST_THRESHOLD;
+  document.getElementById('detail-empty').classList.add('hidden');
+  document.getElementById('detail-content').classList.remove('hidden');
+
+  const all = DATA.filter(r=> r.审核人===name);
+  const fast = all.filter(r=> r.审核耗时 < t);
+  const total = all.length;
+  const fastCnt = fast.length;
+  const ratio = total ? +(fastCnt/total*100).toFixed(2) : 0;
+  const avg = fastCnt ? +(fast.reduce((s,r)=>s+r.审核耗时,0)/fastCnt).toFixed(2) : 0;
+
+  document.getElementById('detail-name').textContent = name;
+  document.getElementById('detail-sub').textContent =
+    `阈值 <${t}s · ${ratio>=HIGH_FAST_RATIO?'⚠️ 该审核人快审占比偏高，建议人工抽检':'快审占比正常'}`;
+  document.getElementById('detail-total').textContent = fmt(total);
+  document.getElementById('detail-fast').textContent = fmt(fastCnt);
+  const dr = document.getElementById('detail-rate');
+  dr.textContent = ratio + '%';
+  dr.className = 'v ' + (ratio>=HIGH_FAST_RATIO?'num-neg':'');
+  document.getElementById('detail-avg').textContent = avg + 's';
+
+  // 直方图
+  const hist = document.getElementById('detail-hist');
+  const histInst = echarts.getInstanceByDom(hist); histInst && histInst.dispose();
+  if (fastCnt){
+    const buckets = {};
+    fast.forEach(r=>{
+      const b = Math.floor(r.审核耗时);
+      buckets[b] = (buckets[b]||0)+1;
+    });
+    const xs = []; for (let i=0;i<t;i++) xs.push(i);
+    const ys = xs.map(i=> buckets[i] || 0);
+    echarts.init(hist).setOption({
+      tooltip:{ trigger:'axis', axisPointer:{type:'shadow'}, formatter: p=> `${p[0].name}秒: ${p[0].value} 条` },
+      grid:{ left:30, right:10, top:10, bottom:24, containLabel:true },
+      xAxis:{ type:'category', data: xs.map(x=>x+'s'), axisLabel:{ fontSize:10, color:'#94a3b8' } },
+      yAxis:{ type:'value', axisLabel:{ fontSize:10, color:'#94a3b8' }, splitLine:{ lineStyle:{ color:'#f1f5f9' } } },
+      series:[{ type:'bar', data: ys, barMaxWidth:18,
+        itemStyle:{ borderRadius:[4,4,0,0],
+          color: new echarts.graphic.LinearGradient(0,0,0,1,[ {offset:0,color:'#fb7185'},{offset:1,color:'#e11d48'} ]) } }]
+    });
+  } else {
+    hist.innerHTML = '<div class="text-center text-xs text-slate-400 py-12">该审核人无快审记录</div>';
+  }
+
+  // 判定饼
+  const pie = document.getElementById('detail-pie');
+  const pieInst = echarts.getInstanceByDom(pie); pieInst && pieInst.dispose();
+  if (fastCnt){
+    const tagMap = {};
+    fast.forEach(r=>{ if (r.拦截理由 !== PASS_TAG) tagMap[r.拦截理由] = (tagMap[r.拦截理由]||0)+1; });
+    const tagArr = Object.entries(tagMap).map(([n,v])=>({ name:n, value:v })).sort((a,b)=> b.value-a.value);
+    const passN = fast.filter(r=> r.拦截理由===PASS_TAG).length;
+    const palette = ['#b45561','#c97884','#c89a5a','#a37f5e','#9c4a55','#8a6c4a'];
+    const data = [
+      { name:'通过', value:passN, itemStyle:{ color:'#0d9488' } },
+      ...tagArr.map((t,i)=>({ name:t.name, value:t.value, itemStyle:{ color: palette[i%palette.length] } }))
+    ];
+    echarts.init(pie).setOption({
+      tooltip:{ trigger:'item', formatter:'{b}: {c} ({d}%)' },
+      legend:{ bottom:0, type:'scroll', textStyle:{ fontSize:10 }, itemWidth:8, itemHeight:8 },
+      series:[{
+        type:'pie', radius:['52%','75%'], center:['50%','42%'],
+        itemStyle:{ borderRadius:4, borderColor:'#fff', borderWidth:1.5 },
+        label:{ formatter:'{d}%', fontSize:10, color:'#475569' },
+        labelLine:{ length:6, length2:4 },
+        data,
+      }]
+    });
+  } else {
+    pie.innerHTML = '';
+  }
+
+  // 详情表
+  const rows = fast.slice().sort((a,b)=> a.审核耗时 - b.审核耗时).map(r=>({
+    feedid: r.feedid || '-',
+    审核耗时: r.审核耗时,
+    审核目录: r.审核目录,
+    分类: r.分类,
+    判定: r.拦截理由 === PASS_TAG ? '通过' : '拦截',
+    拦截理由: r.拦截理由,
+    审核时间: r.审核时间 || '-',
+    账号id: r.账号id || '-',
+  }));
+  const cols = [
+    { key:'feedid', title:'feedid', sortable:true,
+      render:v=>`<code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">${escapeHtml(v)}</code>` },
+    { key:'审核耗时', title:'耗时(秒)', sortable:true, align:'right',
+      render:v=>`<span class="num-neg font-bold">${v}</span>` },
+    { key:'审核目录', title:'审核目录(渠道)', sortable:true },
+    { key:'分类', title:'分类', sortable:true },
+    { key:'判定', title:'判定', sortable:true,
+      render:v=> v==='通过'
+        ? `<span class="pill" style="background:#dceee9;color:#0a6b5e;border-color:#bcdfd6">通过</span>`
+        : `<span class="pill" style="background:#f4e7e9;color:#9c4a55;border-color:#e6cdd1">拦截</span>` },
+    { key:'拦截理由', title:'拦截理由', sortable:true },
+    { key:'审核时间', title:'审核时间', sortable:true,
+      render:v=>`<span class="text-xs text-slate-500">${escapeHtml(v)}</span>` },
+    { key:'账号id', title:'账号id', sortable:true,
+      render:v=>`<span class="text-xs text-slate-500">${escapeHtml(v)}</span>` },
+  ];
+  bindSortableTable('detail-table', cols, rows, { defaultCol:'审核耗时', defaultDir:'asc' });
+}
+
+function initFastControls(){
+  const thr = document.getElementById('fast-threshold');
+  thr.value = String(FAST_THRESHOLD);
+  thr.addEventListener('change', ()=>{
+    FAST_THRESHOLD = +thr.value;
+    renderPplGrid();
+  });
+}
+
+/* ===== 响应式 ===== */
+/* ===== 概览洞察 + Tab 切换 ===== */
+function renderInsight(){
+  const arr = (typeof buildAllAnomalies === 'function') ? buildAllAnomalies() : [];
+  // 异常徽章
+  const badge = document.getElementById('nav-anomaly-cnt');
+  if (badge) badge.textContent = arr.length ? arr.length : '';
+
+  const ic = document.getElementById('insight-content');
+  if (!ic) return;
+
+  if (!arr.length){
+    ic.innerHTML = `<div class="insight-row"><span class="k">✅ 团队尺度</span><span class="v">没有命中异常的审核人，整体一致性良好</span></div>`;
+    return;
+  }
+
+  const aCnt = arr.filter(x=> x.flagA).length;
+  const bCnt = arr.filter(x=> x.flagB).length;
+  const cCnt = arr.filter(x=> x.flagC).length;
+
+  // Top3 严重度（A 强度 + B 数量 + C 占比）
+  const top3 = arr.slice(0, 3);
+  const lines = [];
+  lines.push(`<div class="insight-row">
+    <span class="k">⚠️ 异常人员</span>
+    <span class="v"><b>${arr.length}</b> 人需要关注 · <span style="color:#9c4a55">A 整体异常 ${aCnt}</span> · <span style="color:#8a6630">B 标签异常 ${bCnt}</span> · <span style="color:#3e6f8a">C 快审异常 ${cCnt}</span></span>
+  </div>`);
+
+  top3.forEach((e,i)=>{
+    const tags = [];
+    if (e.flagA) tags.push(`A·${e.diffA>0?'+':''}${e.diffA.toFixed(1)}pp`);
+    if (e.flagB) tags.push(`B·${e.itemsB.length}个分类`);
+    if (e.flagC) tags.push(`C·快审${e.fastRate}%`);
+    let cause = '';
+    if (e.itemsB.length){
+      const it = e.itemsB[0];
+      const ta = it.tagAnomalies[0];
+      if (ta) cause = ` · 主要在 <b>${escapeHtml(it.sub)}</b> 分类的 <b>${escapeHtml(ta.tag)}</b> 标签（占 ${ta.personRate}%, +${ta.diff.toFixed(1)}pp）`;
+      else cause = ` · 主要在 <b>${escapeHtml(it.sub)}</b> 分类（拦截率 ${it.personBlockRate}%）`;
+    }
+    lines.push(`<div class="insight-row">
+      <span class="k">Top${i+1}</span>
+      <span class="v"><b>${escapeHtml(e.name)}</b> <span style="color:var(--ink-4)">[${tags.join(' · ')}]</span>${cause}</span>
+    </div>`);
+  });
+
+  ic.innerHTML = lines.join('');
+}
+
+/* Tab 切换 */
+function initTabs(){
+  const items = document.querySelectorAll('.nav-item[data-tab]');
+  items.forEach(it=>{
+    it.addEventListener('click', e=>{
+      e.preventDefault();
+      switchTab(it.dataset.tab);
+    });
+  });
+  document.querySelectorAll('[data-goto]').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchTab(btn.dataset.goto));
+  });
+  // 滚动时自动高亮当前模块
+  if ('IntersectionObserver' in window){
+    const obs = new IntersectionObserver((entries)=>{
+      // 找到目前在视口顶部下方最接近的 panel
+      const visible = entries.filter(e=> e.isIntersecting)
+        .sort((a,b)=> a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length){
+        const name = visible[0].target.dataset.tab;
+        document.querySelectorAll('.nav-item').forEach(x=> x.classList.toggle('active', x.dataset.tab===name));
+      }
+    }, { rootMargin: '-72px 0px -65% 0px', threshold: 0 });
+    document.querySelectorAll('.tab-panel').forEach(p=> obs.observe(p));
+  }
+}
+function switchTab(name){
+  const panel = document.querySelector(`.tab-panel[data-tab="${name}"]`);
+  if (!panel) return;
+  // 先标记激活（IntersectionObserver会再修正）
+  document.querySelectorAll('.nav-item').forEach(x=> x.classList.toggle('active', x.dataset.tab===name));
+  // 平滑滚动到模块
+  panel.scrollIntoView({ behavior:'smooth', block:'start' });
+  // resize 图表
+  setTimeout(()=>{
+    document.querySelectorAll('.chart-box, [id^="chart-"], #detail-hist, #detail-pie').forEach(el=>{
+      if (!el) return;
+      const inst = echarts.getInstanceByDom(el);
+      inst && inst.resize();
+    });
+  }, 50);
+}
+
+window.addEventListener('resize', ()=>{
+  document.querySelectorAll('.chart-box').forEach(el=>{
+    const inst = echarts.getInstanceByDom(el);
+    inst && inst.resize();
+  });
+});
+</script>
+</body>
+</html>
