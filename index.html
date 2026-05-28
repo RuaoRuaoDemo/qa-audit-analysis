@@ -1217,6 +1217,193 @@ select:focus{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.0
   .tag-detail-row .mini-bar{ display:none; }
 }
 
+/* ============================================
+   建议抽检 & 导出
+   ============================================ */
+/* 入口按钮 */
+.sample-entry{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding: 14px 18px;
+  background: var(--surface);
+  border:1px dashed var(--line); border-radius: var(--radius-lg);
+}
+.sample-entry-btn{ font-size:13px; padding: 9px 18px; }
+.sample-entry-tip{ font-size:12px; color: var(--ink-4); }
+
+/* 抽检操作模态框 — 更宽 */
+.sample-modal-panel{ width: min(1080px, 96vw); max-height: 88vh; }
+
+.sample-ctrl{
+  display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px;
+  padding: 10px 14px;
+  background: var(--surface-2); border-radius: 10px;
+}
+.sample-ctrl .ctrl-block{ display:flex; align-items:center; gap:8px; }
+.sample-ctrl .ctrl-block.ml-auto{ margin-left:auto; }
+.sample-ctrl .ctrl-label{ font-size:12px; color: var(--ink-4); font-weight:500; }
+
+.seg{
+  display:inline-flex; background:#fff; border:1px solid var(--line); border-radius:8px; padding:2px;
+}
+.seg-btn{
+  border:0; background:transparent; padding:5px 12px; font-size:12px; color: var(--ink-3);
+  border-radius:6px; cursor:pointer; font-weight:500; transition: background .12s, color .12s;
+}
+.seg-btn.active{ background: var(--brand); color:#fff; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+.seg-btn:hover:not(.active){ color: var(--ink-2); background: var(--surface-2); }
+
+.ctrl-select{
+  border:1px solid var(--line); border-radius:8px; padding:5px 10px;
+  background:#fff; color: var(--ink-2); font-size:12px; cursor:pointer;
+}
+.ctrl-num{
+  width:90px; border:1px solid var(--line); border-radius:8px; padding:5px 10px;
+  background:#fff; color: var(--ink-2); font-size:12px;
+  font-variant-numeric: tabular-nums;
+  outline:none; transition: border-color .12s, box-shadow .12s;
+}
+.ctrl-num:focus{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.08); }
+.ctrl-hint{ font-size:11.5px; color: var(--ink-4); }
+
+.sample-meta{
+  margin-top: 10px;
+  font-size:12.5px; color: var(--ink-3);
+  padding: 8px 12px; background: var(--surface);
+  border:1px dashed var(--line); border-radius:8px;
+}
+.sample-meta b{ color: var(--ink); font-weight:600; }
+.sample-meta .ok{ color: var(--brand); }
+.sample-meta .warn{ color: var(--warn); }
+
+.sample-grid{
+  display:grid; grid-template-columns: 1fr 1fr; gap:14px;
+}
+@media (max-width:1024px){ .sample-grid{ grid-template-columns: 1fr; } }
+
+.quota-col{
+  border:1px solid var(--line); border-radius: var(--radius-lg);
+  background:#fff; padding: 12px 14px;
+}
+.quota-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom: 8px;
+}
+.quota-title{ font-size:13px; font-weight:600; color: var(--ink); }
+.quota-sub{ font-size:11.5px; color: var(--ink-4); }
+
+.quota-list{
+  display:flex; flex-direction:column; gap:6px;
+  max-height: 380px; overflow-y:auto; padding-right:4px;
+}
+.quota-empty{ font-size:12px; color: var(--ink-4); text-align:center; padding: 20px 0; }
+
+.quota-row{
+  display:grid;
+  grid-template-columns: 22px minmax(120px, 1.6fr) 92px 70px 24px;
+  gap:10px; align-items:center;
+  padding: 8px 10px;
+  border:1px solid var(--line-2); border-radius:8px;
+  background: var(--surface);
+  transition: background .12s, border-color .12s;
+}
+.quota-row:hover{ background: var(--surface-2); }
+.quota-row.locked{ border-color: var(--brand); background: rgba(26,77,77,.04); }
+
+.quota-row .rk{
+  width:18px; height:18px; border-radius:5px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:700; color: var(--ink-3);
+  background: var(--surface-2); border:1px solid var(--line-2);
+  font-variant-numeric: tabular-nums;
+}
+.quota-row .nm{
+  font-size:12.5px; font-weight:600; color: var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.quota-row .meta{ font-size:10.5px; color: var(--ink-4); margin-top:1px; }
+
+/* 配额数字输入框 */
+.quota-input-cell{
+  display:flex; align-items:center; gap:2px;
+  border:1px solid var(--line); border-radius:6px;
+  background:#fff;
+  padding:0 6px 0 0;
+  transition: border-color .12s, box-shadow .12s;
+}
+.quota-input-cell:focus-within{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.08); }
+.quota-row.locked .quota-input-cell{ background: var(--surface-2); }
+.quota-input{
+  width: 58px;
+  border:0; outline:none; background:transparent;
+  padding: 5px 6px;
+  font-size:12.5px; font-weight:600; color: var(--brand);
+  text-align:right; font-variant-numeric: tabular-nums;
+}
+.quota-input::-webkit-outer-spin-button,
+.quota-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.quota-input[type=number]{ -moz-appearance:textfield; }
+.quota-input-cell .unit{ font-size:11px; color: var(--ink-4); user-select:none; }
+
+.quota-row .pcs{
+  font-size:11.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; text-align:right;
+}
+.quota-row .lock-btn{
+  border:0; background:transparent; cursor:pointer;
+  color: var(--ink-4); font-size:14px; padding:2px; line-height:1;
+  transition: color .12s;
+}
+.quota-row .lock-btn:hover{ color: var(--ink-2); }
+.quota-row.locked .lock-btn{ color: var(--brand); }
+
+.sample-actions{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  padding-top: 10px; border-top: 1px dashed var(--line);
+}
+.btn-primary{
+  border:0; background: var(--brand); color:#fff;
+  padding: 7px 16px; border-radius:8px; font-size:12.5px; font-weight:600;
+  cursor:pointer; transition: filter .12s, transform .12s;
+}
+.btn-primary:hover{ filter: brightness(1.08); }
+.btn-primary:active{ transform: translateY(1px); }
+.btn-primary[disabled]{ background: var(--line); cursor:not-allowed; filter:none; }
+.sample-status{ font-size:11.5px; color: var(--ink-4); margin-left:auto; }
+
+.sample-preview{
+  border:1px solid var(--line); border-radius: var(--radius-lg);
+  background:#fff; padding: 12px 14px;
+}
+.preview-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+  margin-bottom: 8px;
+}
+.preview-title{ font-size:13px; font-weight:600; color: var(--ink); }
+.preview-count{ font-size:11.5px; color: var(--brand); margin-left:6px; }
+.preview-tip{ font-size:11px; color: var(--ink-4); }
+.preview-table-wrap{ max-height: 320px; overflow:auto; border:1px solid var(--line-2); border-radius:8px; }
+.sample-table{ width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric: tabular-nums; }
+.sample-table thead th{
+  position:sticky; top:0; z-index:1;
+  background: var(--surface-2); padding: 7px 10px;
+  font-size:11px; font-weight:600; color: var(--ink-3);
+  text-align:left; border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+.sample-table tbody td{
+  padding: 6px 10px; border-bottom: 1px solid var(--line-2);
+  color: var(--ink-2);
+  max-width: 260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.sample-table tbody tr:hover{ background: var(--surface-2); }
+.sample-table tbody td.pass{ color:#0d9488; font-weight:600; }
+.sample-table tbody td.block{ color: var(--block); font-weight:600; }
+
+@media (max-width:1280px){
+  .sample-ctrl{ row-gap: 10px; }
+  .sample-ctrl .ctrl-block.ml-auto{ margin-left:0; }
+}
+
 /* 标签详情模态框 — 更宽 */
 .tag-modal-panel{ width: min(860px, 94vw); }
 
@@ -1601,6 +1788,12 @@ select:focus{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.0
         <div id="tag-report-list" class="tag-report-list mt-3"></div>
         <div id="tag-report-empty" class="abc-modal-empty hidden">暂无拦截标签数据</div>
       </div>
+
+      <!-- 建议抽检入口（单按钮，点击弹出操作面板） -->
+      <div class="sample-entry mt-4">
+        <button class="btn-primary sample-entry-btn" id="sample-open">🎯 建议抽检 &amp; 导出</button>
+        <span class="sample-entry-tip">基于异常人员 / 异常分类 双维度配额抽样，可调比例并导出 CSV / XLSX</span>
+      </div>
     </section>
 
     <!-- ABC 详情模态框 -->
@@ -1624,6 +1817,88 @@ select:focus{ border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,77,77,.0
           <button class="abc-modal-close" data-close="1">×</button>
         </div>
         <div class="abc-modal-body" id="tag-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 建议抽检操作面板 -->
+    <div class="abc-modal hidden" id="sample-modal">
+      <div class="abc-modal-mask" data-close="1"></div>
+      <div class="abc-modal-panel sample-modal-panel">
+        <div class="abc-modal-head">
+          <div class="abc-modal-title">🎯 建议抽检 &amp; 导出</div>
+          <button class="abc-modal-close" data-close="1">×</button>
+        </div>
+        <div class="abc-modal-body">
+
+          <!-- 顶部控制条 -->
+          <div class="sample-ctrl">
+            <div class="ctrl-block">
+              <span class="ctrl-label">抽检池</span>
+              <div class="seg" id="sample-pool">
+                <button class="seg-btn active" data-pool="person">异常人员全部</button>
+                <button class="seg-btn" data-pool="cross">异常人员×异常分类</button>
+                <button class="seg-btn" data-pool="all">全量数据</button>
+              </div>
+            </div>
+            <div class="ctrl-block">
+              <span class="ctrl-label">总抽检量</span>
+              <input id="sample-size-input" type="number" min="0" step="1" value="100" class="ctrl-num" />
+              <span class="ctrl-hint">条（0 = 全部）</span>
+            </div>
+            <div class="ctrl-block">
+              <span class="ctrl-label">推荐算法</span>
+              <select id="sample-algo" class="ctrl-select">
+                <option value="severity">按异常严重度（推荐）</option>
+                <option value="block">按拦截条数占比</option>
+                <option value="even">均匀分配</option>
+              </select>
+            </div>
+            <div class="ctrl-block ml-auto">
+              <button class="btn-ghost" id="sample-reset">↺ 重置为推荐</button>
+            </div>
+          </div>
+
+          <!-- 配额池 + 预估 -->
+          <div class="sample-meta" id="sample-meta">配额加载中…</div>
+
+          <!-- 双列配额：人员 + 分类 -->
+          <div class="sample-grid mt-3">
+            <div class="quota-col">
+              <div class="quota-head">
+                <span class="quota-title">👤 异常人员配额</span>
+                <span class="quota-sub" id="quota-person-sub">—</span>
+              </div>
+              <div id="quota-person-list" class="quota-list"></div>
+              <div id="quota-person-empty" class="quota-empty hidden">当前无异常人员</div>
+            </div>
+            <div class="quota-col">
+              <div class="quota-head">
+                <span class="quota-title">📂 异常分类配额</span>
+                <span class="quota-sub" id="quota-sub-sub">—</span>
+              </div>
+              <div id="quota-sub-list" class="quota-list"></div>
+              <div id="quota-sub-empty" class="quota-empty hidden">当前无异常分类</div>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="sample-actions mt-3">
+            <button class="btn-primary" id="sample-gen">🎲 生成抽检清单</button>
+            <button class="btn-ghost" id="sample-export-csv">⬇ 导出 CSV</button>
+            <button class="btn-ghost" id="sample-export-xlsx">⬇ 导出 XLSX</button>
+            <span class="sample-status" id="sample-status">点击「生成抽检清单」后可导出</span>
+          </div>
+
+          <!-- 预览区 -->
+          <div id="sample-preview" class="sample-preview mt-3 hidden">
+            <div class="preview-head">
+              <span class="preview-title">📋 抽检清单预览 <span id="preview-count" class="preview-count"></span></span>
+              <span class="preview-tip">已随机打散 · 仅展示前 50 条 · 导出为完整数据</span>
+            </div>
+            <div class="preview-table-wrap"><table id="sample-table" class="t sample-table"></table></div>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -1824,6 +2099,7 @@ function bootstrap(){
   initRevSort();
   initAbToolbar();
   initTagReport();
+  initSamplePanel();
   initTrendSwitch();
   initTabs();
   applyScope();
@@ -1852,6 +2128,7 @@ function applyScope(){
   renderDim();
   renderAbCards();
   renderTagReport();
+  renderSamplePanel();
   renderPplGrid();
   renderInsight();
 }
@@ -3229,6 +3506,546 @@ function openTagModal(tagName){
     </div>`;
   modal.classList.remove('hidden');
 }
+
+/* ===== 建议抽检 & 导出 =====
+   - 抽检池：person(异常人员的所有数据) / cross(异常人员×异常分类) / all(全量)
+   - 总抽检量：50/100/200/500/0(全部)
+   - 推荐算法：severity(严重度加权) / block(拦截条数占比) / even(均匀)
+   - 双维度配额：人员 + 分类，滑块可拖动，锁定的行不参与归一化
+   - 采样：以"行权重 = personWeight × subWeight"做加权随机采样，结果打乱顺序
+*/
+let SAMPLE_POOL = 'person';        // person|cross|all
+let SAMPLE_SIZE = 100;             // 0=全部
+let SAMPLE_ALGO = 'severity';      // severity|block|even
+let SAMPLE_PERSONS = [];           // [{name, rec, ratio, locked, total}]
+let SAMPLE_SUBS = [];              // [{sub, rec, ratio, locked, total}]
+let SAMPLE_RESULT = [];            // 最近一次生成的抽检清单
+
+function _round1(v){ return Math.round(v*10)/10; }
+
+/* 计算"严重度"分数：A 偏离 + B 标签命中数 + C 快审率 */
+function _personSeverity(e){
+  return Math.abs(e.diffA||0) * (e.flagA?1:0) * 10
+       + (e.itemsB?e.itemsB.length:0) * 5
+       + (e.flagC ? (e.fastRate||0) : 0);
+}
+
+/* 推荐配额：按算法计算每行原始权重，归一化到 100% */
+function _computeRecommend(items, getCnt, getSev){
+  if (!items.length) return [];
+  let weights;
+  if (SAMPLE_ALGO === 'even'){
+    weights = items.map(()=> 1);
+  } else if (SAMPLE_ALGO === 'block'){
+    weights = items.map(getCnt);
+  } else { // severity
+    weights = items.map(getSev);
+  }
+  // 兜底：全 0 时退化为均匀
+  const sum = weights.reduce((s,v)=> s+v, 0);
+  if (sum <= 0) weights = items.map(()=> 1);
+  const total = weights.reduce((s,v)=> s+v, 0);
+  return weights.map(w=> _round1(w/total*100));
+}
+
+/* 构建配额池子（基于当前 DATA + 异常名单） */
+function buildSampleQuotas(){
+  const arr = (typeof buildAllAnomalies==='function') ? buildAllAnomalies() : [];
+
+  // 人员：所有异常人员（A/B/C 任一命中）
+  const personItems = arr.map(e=>{
+    const blockCnt = e.ps ? e.ps.block : 0;
+    return {
+      name: e.name,
+      total: e.ps ? e.ps.total : 0,
+      block: blockCnt,
+      sev: _personSeverity(e),
+      flags: (e.flagA?'A':'') + (e.flagB?'B':'') + (e.flagC?'C':''),
+    };
+  });
+
+  // 分类：所有"B 项命中"出现的分类（去重）+ 命中此分类的人次累加
+  const subMap = new Map(); // sub -> {sub, hitPpl:Set, hitCnt, blockCnt, sev}
+  arr.forEach(e=>{
+    (e.itemsB||[]).forEach(it=>{
+      if (!subMap.has(it.sub)){
+        subMap.set(it.sub, { sub: it.sub, hitPpl:new Set(), hitCnt:0, blockCnt:0, sev:0 });
+      }
+      const s = subMap.get(it.sub);
+      s.hitPpl.add(e.name);
+      s.hitCnt++;
+      s.blockCnt += it.blocked || 0;
+      // 累计该分类下 tagAnomalies 的 diff 绝对值作为严重度
+      s.sev += (it.tagAnomalies||[]).reduce((ss,t)=> ss + Math.abs(t.diff||0), 0);
+    });
+  });
+  const subItems = Array.from(subMap.values()).map(s=> ({
+    sub: s.sub,
+    total: s.hitCnt,
+    block: s.blockCnt,
+    sev: s.sev,
+    hitPpl: s.hitPpl.size,
+  }));
+
+  // 排序：严重度降序
+  personItems.sort((a,b)=> b.sev - a.sev);
+  subItems.sort((a,b)=> b.sev - a.sev);
+
+  // 推荐比例
+  const recPerson = _computeRecommend(personItems, x=> x.block, x=> x.sev);
+  const recSub    = _computeRecommend(subItems,    x=> x.block, x=> x.sev);
+
+  // 与旧配额合并（保留锁定）
+  const oldP = new Map(SAMPLE_PERSONS.map(x=>[x.name, x]));
+  const oldS = new Map(SAMPLE_SUBS.map(x=>[x.sub, x]));
+  SAMPLE_PERSONS = personItems.map((p, i)=>{
+    const old = oldP.get(p.name);
+    return {
+      ...p,
+      rec: recPerson[i],
+      ratio: old ? old.ratio : recPerson[i],
+      locked: old ? !!old.locked : false,
+    };
+  });
+  SAMPLE_SUBS = subItems.map((s, i)=>{
+    const old = oldS.get(s.sub);
+    return {
+      ...s,
+      rec: recSub[i],
+      ratio: old ? old.ratio : recSub[i],
+      locked: old ? !!old.locked : false,
+    };
+  });
+}
+
+/* 重置为推荐：把所有 ratio 设回 rec、清掉锁定 */
+function _resetQuotaToRec(){
+  SAMPLE_PERSONS.forEach(p=>{ p.ratio = p.rec; p.locked = false; });
+  SAMPLE_SUBS.forEach(s=>{ s.ratio = s.rec; s.locked = false; });
+}
+
+/* 单行调整 ratio 后，对剩余未锁定行做按比例缩放，使总和=100 */
+function _rebalanceQuota(items, changedIdx){
+  const c = items[changedIdx];
+  // 锁定总占用
+  const lockedSum = items.reduce((s,x,i)=> s + (x.locked ? x.ratio : (i===changedIdx ? x.ratio : 0)), 0);
+  let remain = 100 - lockedSum;
+  if (remain < 0){
+    // 被改的那个把锁定+自己超过 100 了，先 clamp 自己
+    c.ratio = Math.max(0, c.ratio + remain);
+    remain = 0;
+  }
+  // 剩余未锁定 & 非当前行
+  const others = items.map((x,i)=> ({x,i})).filter(o=> !o.x.locked && o.i!==changedIdx);
+  const otherSum = others.reduce((s,o)=> s + o.x.ratio, 0);
+  if (others.length === 0) return;
+  if (otherSum <= 0){
+    const each = _round1(remain / others.length);
+    others.forEach(o=> o.x.ratio = each);
+  } else {
+    others.forEach(o=> o.x.ratio = _round1(o.x.ratio / otherSum * remain));
+  }
+  // 由于 round1 误差，修正最后一项使总和=100
+  const sum = items.reduce((s,x)=> s + x.ratio, 0);
+  const diff = _round1(100 - sum);
+  if (Math.abs(diff) > 0.01){
+    const last = others[others.length-1];
+    if (last) last.x.ratio = _round1(last.x.ratio + diff);
+  }
+}
+
+/* 渲染配额行 */
+function renderQuotaList(){
+  const persontotalAll = SAMPLE_PERSONS.reduce((s,x)=> s + x.total, 0);
+  const subtotalAll = SAMPLE_SUBS.reduce((s,x)=> s + x.total, 0);
+
+  const renderRow = (it, kind) => {
+    const key = kind==='person' ? it.name : it.sub;
+    const titleSub = kind==='person'
+      ? `总 ${fmt(it.total)} · 拦 ${fmt(it.block)} · 标记 ${it.flags||'—'}`
+      : `命中 ${fmt(it.hitPpl)} 人 · 累计 ${fmt(it.total)} 次`;
+    const pcsTxt = SAMPLE_SIZE>0
+      ? `${Math.round(SAMPLE_SIZE * it.ratio / 100)} 条`
+      : '—';
+    return `
+      <div class="quota-row ${it.locked?'locked':''}" data-key="${escapeHtml(key)}" data-kind="${kind}">
+        <span class="rk">${it._rank}</span>
+        <div style="min-width:0">
+          <div class="nm" title="${escapeHtml(key)}">${escapeHtml(key)}</div>
+          <div class="meta">${titleSub}</div>
+        </div>
+        <label class="quota-input-cell" title="配额百分比">
+          <input type="number" class="quota-input" min="0" max="100" step="0.1" value="${it.ratio.toFixed(1)}" />
+          <span class="unit">%</span>
+        </label>
+        <span class="pcs">${pcsTxt}</span>
+        <button class="lock-btn" title="${it.locked?'已锁定（点击解锁）':'锁定该项'}">${it.locked?'🔒':'🔓'}</button>
+      </div>`;
+  };
+
+  // 加 _rank
+  SAMPLE_PERSONS.forEach((p,i)=> p._rank = i+1);
+  SAMPLE_SUBS.forEach((s,i)=> s._rank = i+1);
+
+  const pList = document.getElementById('quota-person-list');
+  const sList = document.getElementById('quota-sub-list');
+  const pEmpty = document.getElementById('quota-person-empty');
+  const sEmpty = document.getElementById('quota-sub-empty');
+
+  if (!SAMPLE_PERSONS.length){
+    pList.innerHTML = ''; pEmpty.classList.remove('hidden');
+  } else {
+    pEmpty.classList.add('hidden');
+    pList.innerHTML = SAMPLE_PERSONS.map(p=> renderRow(p, 'person')).join('');
+  }
+  if (!SAMPLE_SUBS.length){
+    sList.innerHTML = ''; sEmpty.classList.remove('hidden');
+  } else {
+    sEmpty.classList.add('hidden');
+    sList.innerHTML = SAMPLE_SUBS.map(s=> renderRow(s, 'sub')).join('');
+  }
+
+  // 头部 sub 标签
+  const pSub = document.getElementById('quota-person-sub');
+  const sSub = document.getElementById('quota-sub-sub');
+  if (pSub) pSub.textContent = `共 ${SAMPLE_PERSONS.length} 人 · 累计 ${fmt(persontotalAll)} 条`;
+  if (sSub) sSub.textContent = `共 ${SAMPLE_SUBS.length} 个分类 · 累计 ${fmt(subtotalAll)} 次命中`;
+
+  // meta 提示
+  const meta = document.getElementById('sample-meta');
+  if (meta){
+    const sizeLabel = SAMPLE_SIZE>0 ? `${SAMPLE_SIZE} 条` : '全部命中条数';
+    const poolLabel = SAMPLE_POOL==='person' ? '异常人员的全部数据'
+                    : SAMPLE_POOL==='cross'  ? '异常人员 × 异常分类 交叉'
+                    : '全量数据（带配额加权）';
+    meta.innerHTML = `当前配置：池=<b>${poolLabel}</b> · 总量=<b>${sizeLabel}</b> · 算法=<b>${
+      SAMPLE_ALGO==='severity'?'严重度加权':SAMPLE_ALGO==='block'?'拦截条数占比':'均匀分配'
+    }</b>`;
+  }
+
+  // 绑定输入框 / 锁定
+  [pList, sList].forEach((listEl)=>{
+    if (!listEl) return;
+    listEl.querySelectorAll('.quota-row').forEach(row=>{
+      const kind = row.dataset.kind;
+      const key = row.dataset.key;
+      const items = kind==='person' ? SAMPLE_PERSONS : SAMPLE_SUBS;
+      const idx = items.findIndex(x=> (kind==='person'?x.name:x.sub) === key);
+      if (idx < 0) return;
+
+      const input = row.querySelector('.quota-input');
+      // input：实时更新本行的预估条数（不触发归一化，避免输入中途数字被改）
+      input.addEventListener('input', ()=>{
+        let v = parseFloat(input.value);
+        if (isNaN(v)) v = 0;
+        if (v < 0) v = 0;
+        if (v > 100) v = 100;
+        items[idx].ratio = _round1(v);
+        const pcsEl = row.querySelector('.pcs');
+        if (pcsEl){
+          pcsEl.textContent = SAMPLE_SIZE>0
+            ? Math.round(SAMPLE_SIZE * items[idx].ratio / 100) + ' 条'
+            : '—';
+        }
+      });
+      // change（失焦或回车）：做归一化并整体刷新
+      const onCommit = ()=>{
+        let v = parseFloat(input.value);
+        if (isNaN(v) || v < 0) v = 0;
+        if (v > 100) v = 100;
+        items[idx].ratio = _round1(v);
+        _rebalanceQuota(items, idx);
+        renderQuotaList();
+      };
+      input.addEventListener('change', onCommit);
+      input.addEventListener('keydown', e=>{
+        if (e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+      });
+
+      const lock = row.querySelector('.lock-btn');
+      lock.addEventListener('click', e=>{
+        e.stopPropagation();
+        items[idx].locked = !items[idx].locked;
+        renderQuotaList();
+      });
+    });
+  });
+}
+
+/* 取样：按配额生成抽检清单 */
+function generateSample(){
+  // 池
+  const personSet = new Set(SAMPLE_PERSONS.map(p=> p.name));
+  const subSet = new Set(SAMPLE_SUBS.map(s=> s.sub));
+  let pool = DATA;
+  if (SAMPLE_POOL === 'person'){
+    pool = DATA.filter(r=> personSet.has(r.审核人));
+  } else if (SAMPLE_POOL === 'cross'){
+    pool = DATA.filter(r=> personSet.has(r.审核人) && subSet.has(r.分类));
+  }
+  // 总量
+  const total = SAMPLE_SIZE>0 ? Math.min(SAMPLE_SIZE, pool.length) : pool.length;
+  if (!pool.length || !total){
+    SAMPLE_RESULT = [];
+    return { ok:false, msg:`池为空（来源「${SAMPLE_POOL}」无可用数据）`, total:0 };
+  }
+
+  // 配额映射（百分比 → 目标条数）
+  const personQuota = new Map();
+  SAMPLE_PERSONS.forEach(p=>{
+    personQuota.set(p.name, Math.max(0, Math.round(total * p.ratio / 100)));
+  });
+  const subQuota = new Map();
+  SAMPLE_SUBS.forEach(s=>{
+    subQuota.set(s.sub, Math.max(0, Math.round(total * s.ratio / 100)));
+  });
+
+  // 每条数据的权重 = personRatio% * subRatio%（一者缺省=1，避免乘 0）
+  // 用加权水库式：先按权重 sort 取前 total*K 个候选，再无放回随机抽 total 个
+  // 这里简化：直接按权重做"加权随机采样（A-Res）"
+  const weighted = pool.map(r=>{
+    const pw = (personQuota.get(r.审核人) || (personSet.size?0.01:1));
+    const sw = (subQuota.get(r.分类) || (subSet.size?0.01:1));
+    const w = pw * sw;
+    return { r, w };
+  });
+
+  // A-Res 算法
+  const heap = [];
+  for (const item of weighted){
+    if (item.w <= 0) continue;
+    const k = Math.pow(Math.random(), 1/item.w);
+    if (heap.length < total){
+      heap.push({ k, r:item.r });
+      heap.sort((a,b)=> a.k - b.k);
+    } else if (k > heap[0].k){
+      heap[0] = { k, r:item.r };
+      heap.sort((a,b)=> a.k - b.k);
+    }
+  }
+  // 取出并打乱顺序
+  let arr = heap.map(x=> x.r);
+  for (let i=arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  SAMPLE_RESULT = arr;
+  return { ok:true, total: arr.length };
+}
+
+/* 渲染预览表 */
+function renderSamplePreview(){
+  const wrap = document.getElementById('sample-preview');
+  const cntEl = document.getElementById('preview-count');
+  const tab = document.getElementById('sample-table');
+  if (!wrap || !tab) return;
+  if (!SAMPLE_RESULT.length){
+    wrap.classList.add('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+  if (cntEl) cntEl.textContent = `共 ${fmt(SAMPLE_RESULT.length)} 条`;
+
+  const head = ['#','feedid','审核人','审核目录','分类','判定','拦截理由','审核耗时(s)','审核时间','账号id'];
+  const rows = SAMPLE_RESULT.slice(0, 50);
+  let html = '<thead><tr>' + head.map(h=> `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  rows.forEach((r, i)=>{
+    const pass = r.拦截理由 === PASS_TAG;
+    html += `<tr>
+      <td>${i+1}</td>
+      <td title="${escapeHtml(r.feedid||'')}">${escapeHtml(r.feedid||'-')}</td>
+      <td>${escapeHtml(r.审核人||'-')}</td>
+      <td>${escapeHtml(r.审核目录||'-')}</td>
+      <td>${escapeHtml(r.分类||'-')}</td>
+      <td class="${pass?'pass':'block'}">${pass?'通过':'拦截'}</td>
+      <td title="${escapeHtml(r.拦截理由||'')}">${escapeHtml(r.拦截理由||'-')}</td>
+      <td>${r.审核耗时!=null? r.审核耗时:'-'}</td>
+      <td>${escapeHtml(r.审核时间||'-')}</td>
+      <td>${escapeHtml(r.账号id||'-')}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  tab.innerHTML = html;
+}
+
+/* 导出 */
+function _sampleHeader(){
+  return ['feedid','审核人','审核目录','分类','判定','拦截理由','审核耗时','审核时间','账号id'];
+}
+function _sampleRowsAOA(){
+  const head = _sampleHeader();
+  const body = SAMPLE_RESULT.map(r=> [
+    r.feedid||'', r.审核人||'', r.审核目录||'', r.分类||'',
+    (r.拦截理由===PASS_TAG?'通过':'拦截'),
+    r.拦截理由||'', r.审核耗时!=null?r.审核耗时:'',
+    r.审核时间||'', r.账号id||''
+  ]);
+  return [head, ...body];
+}
+function exportSampleCSV(){
+  if (!SAMPLE_RESULT.length){ alert('请先点击「生成抽检清单」'); return; }
+  const aoa = _sampleRowsAOA();
+  const lines = aoa.map(row => row.map(v=>{
+    const s = String(v==null?'':v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(','));
+  const csv = '\uFEFF' + lines.join('\r\n'); // BOM 以避免 Excel 中文乱码
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  _downloadBlob(blob, _sampleFileName('csv'));
+}
+function exportSampleXLSX(){
+  if (!SAMPLE_RESULT.length){ alert('请先点击「生成抽检清单」'); return; }
+  if (typeof XLSX === 'undefined'){ alert('XLSX 库未加载'); return; }
+  const ws = XLSX.utils.aoa_to_sheet(_sampleRowsAOA());
+  ws['!cols'] = [{wch:18},{wch:14},{wch:14},{wch:14},{wch:6},{wch:18},{wch:10},{wch:20},{wch:18}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '抽检清单');
+  XLSX.writeFile(wb, _sampleFileName('xlsx'));
+}
+function _sampleFileName(ext){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  return `质审抽检清单-${ts}.${ext}`;
+}
+function _downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+/* 入口：初始化（绑定 + 首次渲染） */
+function initSamplePanel(){
+  const openBtn = document.getElementById('sample-open');
+  const modal = document.getElementById('sample-modal');
+  if (!openBtn || !modal) return;
+
+  if (openBtn.dataset.bound){
+    // 已绑定，仅刷新数据/视图
+    renderSamplePanel();
+    return;
+  }
+  openBtn.dataset.bound = '1';
+
+  // 入口：打开模态框 + 渲染
+  openBtn.addEventListener('click', ()=>{
+    modal.classList.remove('hidden');
+    // 锁滚 + 同步输入框 + 渲染
+    document.body.style.overflow = 'hidden';
+    const sizeInput = document.getElementById('sample-size-input');
+    if (sizeInput) sizeInput.value = SAMPLE_SIZE;
+    const algo = document.getElementById('sample-algo');
+    if (algo) algo.value = SAMPLE_ALGO;
+    // 同步池 chip
+    document.querySelectorAll('#sample-pool .seg-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.pool === SAMPLE_POOL);
+    });
+    renderSamplePanel();
+  });
+
+  // 关闭：mask/×/ESC
+  modal.querySelectorAll('[data-close]').forEach(x=>{
+    x.addEventListener('click', ()=>{
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    });
+  });
+  document.addEventListener('keydown', e=>{
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')){
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // —— 控件绑定（位于模态框内）——
+  const pool = document.getElementById('sample-pool');
+  const sizeInput = document.getElementById('sample-size-input');
+  const algo = document.getElementById('sample-algo');
+  const reset = document.getElementById('sample-reset');
+  const gen = document.getElementById('sample-gen');
+  const csv = document.getElementById('sample-export-csv');
+  const xlsx = document.getElementById('sample-export-xlsx');
+
+  pool && pool.addEventListener('click', e=>{
+    const b = e.target.closest('.seg-btn'); if (!b) return;
+    SAMPLE_POOL = b.dataset.pool;
+    pool.querySelectorAll('.seg-btn').forEach(x=> x.classList.toggle('active', x===b));
+    renderQuotaList();
+  });
+  if (sizeInput){
+    const applySize = ()=>{
+      let v = parseInt(sizeInput.value, 10);
+      if (isNaN(v) || v < 0) v = 0;
+      SAMPLE_SIZE = v;
+      // 同步显示
+      sizeInput.value = v;
+      renderQuotaList();
+    };
+    sizeInput.addEventListener('change', applySize);
+    sizeInput.addEventListener('input', ()=>{
+      // 实时刷新预估条数（不重渲染列表，避免输入框焦点丢）
+      let v = parseInt(sizeInput.value, 10);
+      if (isNaN(v) || v < 0) v = 0;
+      SAMPLE_SIZE = v;
+      document.querySelectorAll('.quota-row').forEach(row=>{
+        const inp = row.querySelector('.quota-input');
+        const pcsEl = row.querySelector('.pcs');
+        if (!inp || !pcsEl) return;
+        const r = parseFloat(inp.value) || 0;
+        pcsEl.textContent = SAMPLE_SIZE>0 ? Math.round(SAMPLE_SIZE * r / 100) + ' 条' : '—';
+      });
+      // meta 同步
+      const meta = document.getElementById('sample-meta');
+      if (meta){
+        const sizeLabel = SAMPLE_SIZE>0 ? `${SAMPLE_SIZE} 条` : '全部命中条数';
+        const cur = meta.innerHTML;
+        meta.innerHTML = cur.replace(/总量=<b>[^<]+<\/b>/, `总量=<b>${sizeLabel}</b>`);
+      }
+    });
+  }
+  algo && algo.addEventListener('change', ()=>{
+    SAMPLE_ALGO = algo.value;
+    const oldLockedP = new Set(SAMPLE_PERSONS.filter(x=> x.locked).map(x=> x.name));
+    const oldLockedS = new Set(SAMPLE_SUBS.filter(x=> x.locked).map(x=> x.sub));
+    SAMPLE_PERSONS = []; SAMPLE_SUBS = [];
+    buildSampleQuotas();
+    SAMPLE_PERSONS.forEach(p=>{ if (oldLockedP.has(p.name)) p.locked = true; });
+    SAMPLE_SUBS.forEach(s=>{ if (oldLockedS.has(s.sub)) s.locked = true; });
+    renderQuotaList();
+  });
+  reset && reset.addEventListener('click', ()=>{
+    _resetQuotaToRec();
+    renderQuotaList();
+  });
+  gen && gen.addEventListener('click', ()=>{
+    const status = document.getElementById('sample-status');
+    const ret = generateSample();
+    if (!ret.ok){
+      status.textContent = `❌ ${ret.msg}`;
+      SAMPLE_RESULT = []; renderSamplePreview();
+      return;
+    }
+    status.innerHTML = `✅ 已生成 <b style="color:var(--brand)">${fmt(ret.total)}</b> 条（随机打散）· 可导出`;
+    renderSamplePreview();
+  });
+  csv && csv.addEventListener('click', exportSampleCSV);
+  xlsx && xlsx.addEventListener('click', exportSampleXLSX);
+}
+
+/* 数据刷新时调用：清空旧结果；模态框下次打开会重建配额 */
+function renderSamplePanel(){
+  buildSampleQuotas();
+  renderQuotaList();
+  // 当 DATA 变化时，旧的抽检结果失效
+  SAMPLE_RESULT = [];
+  renderSamplePreview();
+  const status = document.getElementById('sample-status');
+  if (status) status.textContent = '点击「生成抽检清单」后可导出';
+}
+
 
 /* ===== 模块5：耗时分析 — 人员卡片墙 + 详情 (始终基于全量) ===== */
 let FAST_THRESHOLD = 10;
